@@ -1,0 +1,24 @@
+{
+  "name": "daro-apps",
+  "private": true,
+  "description": "다로 앱 모노레포: 공통 모듈(packages) + 앱(apps) + 버전 매니페스트(manifests)",
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "test": "npm run test --workspaces --if-present",
+    "typecheck": "npm run typecheck --workspaces --if-present",
+    "validate:manifests": "node --experimental-strip-types scripts/validate-manifests.mjs",
+    "check": "npm test && npm run typecheck && npm run validate:manifests",
+    "new-app": "node scripts/create-app.mjs",
+    "release:manifest": "node --experimental-strip-types scripts/release-manifest.mjs"
+  },
+  "devDependencies": {
+    "@types/react": "~18.2.79",
+    "typescript": "~5.3.3"
+  },
+  "engines": {
+    "node": ">=22.6"
+  }
+}

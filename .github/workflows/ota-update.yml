@@ -1,0 +1,41 @@
+# OTA(JS) 업데이트 배포: 스토어 심사 없이 사용자 앱에 [업데이트] 버튼 노출
+# 필요 시크릿: EXPO_TOKEN (expo.dev → Access tokens)
+name: OTA Update
+
+on:
+  workflow_dispatch:
+    inputs:
+      app:
+        description: 'apps/ 아래 폴더명 (예: pet)'
+        required: true
+      channel:
+        description: '배포 채널'
+        type: choice
+        options: [preview, production]
+        default: preview
+      message:
+        description: '업데이트 메시지'
+        required: true
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Validate app
+        run: test -d "apps/${{ inputs.app }}" || { echo "apps/${{ inputs.app }} 없음"; exit 1; }
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run check
+      - uses: expo/expo-github-action@v8
+        with:
+          eas-version: latest
+          token: ${{ secrets.EXPO_TOKEN }}
+      - name: Publish update
+        working-directory: apps/${{ inputs.app }}
+        env:
+          MESSAGE: ${{ inputs.message }}
+        run: eas update --channel "${{ inputs.channel }}" --message "$MESSAGE" --non-interactive
