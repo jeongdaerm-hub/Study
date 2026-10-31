@@ -3,17 +3,42 @@
     "name": "다로펫",
     "slug": "daro-pet",
     "version": "1.0.0",
-    "runtimeVersion": { "policy": "appVersion" },
+    "runtimeVersion": {
+      "policy": "appVersion"
+    },
     "updates": {
       "enabled": true,
       "checkAutomatically": "NEVER",
       "fallbackToCacheTimeout": 0,
       "url": "https://u.expo.dev/REPLACE_WITH_EAS_PROJECT_ID"
     },
-    "ios": { "bundleIdentifier": "com.daro.pet" },
-    "android": { "package": "com.daro.pet" },
+    "ios": {
+      "bundleIdentifier": "com.daro.pet"
+    },
+    "android": {
+      "package": "com.daro.pet",
+      "permissions": [
+        "android.permission.POST_NOTIFICATIONS",
+        "android.permission.SCHEDULE_EXACT_ALARM"
+      ]
+    },
     "extra": {
       "versionManifestUrl": "https://example.com/daro-pet/version.json"
-    }
+    },
+    "plugins": [
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "반려동물 일기에 사진을 첨부하려면 사진 접근 권한이 필요해요.",
+          "cameraPermission": "반려동물 사진을 촬영하려면 카메라 권한이 필요해요."
+        }
+      ],
+      [
+        "expo-notifications",
+        {
+          "color": "#FF8A00"
+        }
+      ]
+    ]
   }
 }
