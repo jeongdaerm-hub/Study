@@ -1,0 +1,19 @@
+{
+  "expo": {
+    "name": "다로펫",
+    "slug": "daro-pet",
+    "version": "1.0.0",
+    "runtimeVersion": { "policy": "appVersion" },
+    "updates": {
+      "enabled": true,
+      "checkAutomatically": "NEVER",
+      "fallbackToCacheTimeout": 0,
+      "url": "https://u.expo.dev/REPLACE_WITH_EAS_PROJECT_ID"
+    },
+    "ios": { "bundleIdentifier": "com.daro.pet" },
+    "android": { "package": "com.daro.pet" },
+    "extra": {
+      "versionManifestUrl": "https://example.com/daro-pet/version.json"
+    }
+  }
+}

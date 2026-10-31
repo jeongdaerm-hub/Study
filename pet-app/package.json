@@ -1,0 +1,25 @@
+{
+  "name": "daro-pet",
+  "version": "1.0.0",
+  "private": true,
+  "main": "node_modules/expo/AppEntry.js",
+  "scripts": {
+    "start": "expo start",
+    "android": "expo run:android",
+    "ios": "expo run:ios",
+    "test": "node --experimental-strip-types --test tests/*.test.ts",
+    "update:publish": "eas update --branch production --message"
+  },
+  "dependencies": {
+    "expo": "~51.0.28",
+    "expo-application": "~5.9.1",
+    "expo-constants": "~16.0.2",
+    "expo-updates": "~0.25.24",
+    "react": "18.2.0",
+    "react-native": "0.74.5"
+  },
+  "devDependencies": {
+    "@types/react": "~18.2.79",
+    "typescript": "~5.3.3"
+  }
+}
