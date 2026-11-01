@@ -73,3 +73,13 @@ test('isSecureManifestUrl: HTTPS 만 허용', async () => {
   assert.equal(isSecureManifestUrl('http://cdn.example.com/pet.json'), false);
   assert.equal(isSecureManifestUrl('file:///etc/passwd'), false);
 });
+
+test('isAllowedApiUrl: HTTPS 만, 개발 시 localhost 예외', async () => {
+  const { isAllowedApiUrl } = await import('../src/net/http.ts');
+  assert.equal(isAllowedApiUrl('https://scan.daro.app'), true);
+  assert.equal(isAllowedApiUrl('https://scan.daro.app/v1/scan'), true);
+  assert.equal(isAllowedApiUrl('http://scan.daro.app'), false);
+  assert.equal(isAllowedApiUrl('http://localhost:8787'), false);
+  assert.equal(isAllowedApiUrl('http://localhost:8787', true), true);
+  assert.equal(isAllowedApiUrl('javascript:alert(1)', true), false);
+});

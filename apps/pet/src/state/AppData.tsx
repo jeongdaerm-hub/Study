@@ -10,7 +10,8 @@ import {
   saveList,
   storageKey,
 } from '@daro/app-core';
-import type { Collection, PetDb, Schedule, Vaccination } from '../types.ts';
+import type { Collection, PetDb, Schedule, ScheduleType, Vaccination } from '../types.ts';
+import type { ImportItem } from '@daro/health-scan';
 import { isLab, isLog, isPet, isSchedule, isVaccine, isVisit, isWeight } from '../logic/validate.ts';
 import { PET_CHANNEL, schedulePetReminder } from '../notifications.ts';
 import { buildSample } from '../data/sample.ts';
@@ -45,7 +46,28 @@ interface AppData {
   toggleScheduleDone: (id: string) => Promise<void>;
   saveVaccine: (v: Vaccination) => Promise<void>;
   loadSample: () => Promise<void>;
+  /** 사진 인식 결과 저장 → 기록 + 일정 동기화 */
+  importScan: (petId: string, items: ImportItem[], opts: ImportOptions) => Promise<ImportSummary>;
 }
+
+export interface ImportOptions {
+  /** 지난 진료·접종을 일정 '완료'로도 기록 */
+  syncHistory: boolean;
+  /** 첫 진료 기록에 첨부할 원본 사진 */
+  photoUri?: string;
+}
+export interface ImportSummary {
+  vaccines: number;
+  visits: number;
+  labs: number;
+  schedules: number;
+}
+
+const FOLLOW_TYPE: Record<string, ScheduleType> = { vaccine: 'vaccine', medicine: 'medicine', hospital: 'hospital', etc: 'etc' };
+const at10 = (key: string) => {
+  const [y, m, d] = key.split('-').map(Number);
+  return new Date(y, m - 1, d, 10, 0).toISOString();
+};
 
 const Ctx = createContext<AppData | null>(null);
 
@@ -215,6 +237,78 @@ export function AppDataProvider({ children }: { children: React.ReactNode }) {
     setCurrentPetId(sample.pets[0].id);
   }, [persist, saveSchedule, saveVaccine, setCurrentPetId]);
 
+  const importScan = useCallback(
+    async (petId: string, items: ImportItem[], opts: ImportOptions): Promise<ImportSummary> => {
+      const sum: ImportSummary = { vaccines: 0, visits: 0, labs: 0, schedules: 0 };
+      const history: Schedule[] = [];
+      let photoUsed = false;
+      for (const it of items.filter((i) => i.selected)) {
+        if (it.kind === 'vaccine') {
+          const v = it.data;
+          // 다음 접종일이 있으면 saveVaccine 이 일정·알림을 자동 등록
+          await saveVaccine({ id: newId(), petId, name: v.name, date: v.date, nextDate: v.nextDate ?? undefined, hospital: v.hospital });
+          sum.vaccines++;
+          if (v.nextDate) sum.schedules++;
+          history.push({ id: newId(), petId, type: 'vaccine', title: `${v.name} 접종`, memo: v.hospital, dateTime: at10(v.date), remindBefore: 0, repeat: 'none', done: true });
+        } else if (it.kind === 'visit') {
+          const v = it.data;
+          await upsert('visits', {
+            id: newId(),
+            petId,
+            date: v.date,
+            hospital: v.hospital,
+            reason: v.reason,
+            diagnosis: v.diagnosis,
+            treatment: v.treatment,
+            cost: v.cost ?? undefined,
+            // 같은 사진 파일을 여러 기록이 공유하면 삭제 시 함께 지워지므로 첫 기록에만 첨부
+            photos: opts.photoUri && !photoUsed ? [opts.photoUri] : [],
+          });
+          photoUsed ||= !!opts.photoUri;
+          sum.visits++;
+          history.push({ id: newId(), petId, type: 'hospital', title: `${v.reason} (진료)`, memo: v.hospital, dateTime: at10(v.date), remindBefore: 0, repeat: 'none', done: true });
+        } else if (it.kind === 'lab') {
+          const l = it.data;
+          await upsert('labs', {
+            id: newId(),
+            petId,
+            date: l.date,
+            title: l.title,
+            memo: '건강수첩 사진에서 가져옴',
+            items: l.items.map((i) => ({ name: i.name, value: i.value, unit: i.unit, refMin: i.refMin ?? undefined, refMax: i.refMax ?? undefined })),
+          });
+          sum.labs++;
+        } else {
+          const f = it.data;
+          await saveSchedule({
+            id: newId(),
+            petId,
+            type: FOLLOW_TYPE[f.type] ?? 'etc',
+            title: f.title,
+            memo: '건강수첩 사진에서 등록',
+            dateTime: at10(f.date),
+            remindBefore: 1440,
+            repeat: 'none',
+            done: false,
+          });
+          sum.schedules++;
+        }
+      }
+      // 과거 일정 동기화: 지난 진료·접종을 '완료' 일정으로 (같은 날 같은 제목은 건너뜀)
+      if (opts.syncHistory) {
+        const dayOf = (iso: string) => iso.slice(0, 10);
+        for (const h of history) {
+          const exists = ref.current.schedules.some((s) => s.petId === petId && s.title === h.title && dayOf(new Date(s.dateTime).toISOString()) === dayOf(h.dateTime));
+          if (exists) continue;
+          await saveSchedule(h);
+          sum.schedules++;
+        }
+      }
+      return sum;
+    },
+    [saveVaccine, upsert, saveSchedule],
+  );
+
   const value = useMemo<AppData>(
     () => ({
       ready,
@@ -229,8 +323,9 @@ export function AppDataProvider({ children }: { children: React.ReactNode }) {
       toggleScheduleDone,
       saveVaccine,
       loadSample,
+      importScan,
     }),
-    [ready, db, currentPetId, setCurrentPetId, saveError, upsert, remove, removePet, saveSchedule, toggleScheduleDone, saveVaccine, loadSample],
+    [ready, db, currentPetId, setCurrentPetId, saveError, upsert, remove, removePet, saveSchedule, toggleScheduleDone, saveVaccine, loadSample, importScan],
   );
 
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;

@@ -15,6 +15,8 @@ export interface DaroAppOptions {
   features?: DaroFeature[];
   permissionText?: { photos?: string; camera?: string };
   manifestBaseUrl?: string;
+  /** 앱 전용 API 서버 주소 (https). API 키는 넣지 말 것 */
+  apiUrl?: string;
   versionManifestUrl?: string;
   plugins?: unknown[];
   extra?: Record<string, unknown>;

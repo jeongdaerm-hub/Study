@@ -15,6 +15,7 @@
   "dependencies": {
     "@daro/app-config": "*",
     "@daro/app-core": "*",
+    "@daro/health-scan": "*",
     "@expo/metro-runtime": "~58.0.16",
     "@react-native-async-storage/async-storage": "2.2.0",
     "@react-native-community/datetimepicker": "9.2.1",

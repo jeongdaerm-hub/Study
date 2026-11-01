@@ -7,6 +7,7 @@ import type { LabResult, Vaccination, VisitRecord } from '../types.ts';
 import { Card, EmptyState, LevelBadge, Screen, Segmented, s } from '../components/common.tsx';
 import { PetSwitcher } from '../components/PetSwitcher.tsx';
 import { LabEditor, VaccineEditor, VisitEditor } from './HealthEditors.tsx';
+import { ScanFlow } from './ScanFlow.tsx';
 import { color } from '../theme.ts';
 
 type Tab = 'visit' | 'lab' | 'vaccine';
@@ -20,6 +21,7 @@ export function HealthScreen({ onAddPet }: { onAddPet: () => void }) {
   const pet = useCurrentPet();
   const [tab, setTab] = useState<Tab>('visit');
   const [editing, setEditing] = useState<Editing>(null);
+  const [scan, setScan] = useState(false);
   if (!pet) return null;
 
   const visits = db.visits.filter((x) => x.petId === pet.id).sort(byDateDesc);
@@ -32,6 +34,19 @@ export function HealthScreen({ onAddPet }: { onAddPet: () => void }) {
     <Screen footer={<Fab label={addLabel} onPress={() => setEditing({ tab } as Editing)} />}>
       <PetSwitcher onAdd={onAddPet} />
       <Text style={[s.title, { fontSize: 22, marginBottom: 8 }]}>건강수첩</Text>
+      <Pressable
+        onPress={() => setScan(true)}
+        style={{ flexDirection: 'row', alignItems: 'center', gap: 12, backgroundColor: color.primarySoft, borderRadius: 14, padding: 14, marginBottom: 12, borderWidth: 1, borderColor: color.primary }}
+        accessibilityRole="button"
+        accessibilityLabel="건강수첩 사진으로 불러오기"
+      >
+        <Text style={{ fontSize: 28 }}>📷</Text>
+        <View style={{ flex: 1 }}>
+          <Text style={[s.title, { color: color.primaryText }]}>사진으로 불러오기</Text>
+          <Text style={[s.sub, { color: color.primaryText }]}>수첩·영수증·검사지를 찍으면 기록과 일정을 자동 입력해요</Text>
+        </View>
+        <Text style={{ color: color.primaryText, fontSize: 18 }}>›</Text>
+      </Pressable>
       <Segmented
         value={tab}
         onChange={setTab}
@@ -125,6 +140,7 @@ export function HealthScreen({ onAddPet }: { onAddPet: () => void }) {
         </Card>
       )}
 
+      {scan && <ScanFlow onClose={() => setScan(false)} />}
       {editing?.tab === 'visit' && <VisitEditor petId={pet.id} initial={editing.item} onClose={() => setEditing(null)} />}
       {editing?.tab === 'lab' && <LabEditor petId={pet.id} initial={editing.item} onClose={() => setEditing(null)} />}
       {editing?.tab === 'vaccine' && <VaccineEditor petId={pet.id} initial={editing.item} onClose={() => setEditing(null)} />}

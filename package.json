@@ -4,7 +4,8 @@
   "description": "다로 앱 모노레포: 공통 모듈(packages) + 앱(apps) + 버전 매니페스트(manifests)",
   "workspaces": [
     "apps/*",
-    "packages/*"
+    "packages/*",
+    "services/*"
   ],
   "scripts": {
     "test": "npm run test --workspaces --if-present",

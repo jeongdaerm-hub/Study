@@ -36,7 +36,18 @@ export {
 
 // storage
 export { loadList, loadValidList, saveList, storageKey } from './storage/store.ts';
-export { pickPhotos, deletePhotos, MAX_PHOTOS, type PickPhotoMessages } from './storage/photos.ts';
+export {
+  pickPhotos,
+  pickImagesForUpload,
+  deletePhotos,
+  MAX_PHOTOS,
+  type PickPhotoMessages,
+  type PickedImage,
+} from './storage/photos.ts';
+export { getInstallId } from './storage/installId.ts';
+
+// net
+export { postJson, isAllowedApiUrl, type PostResult } from './net/http.ts';
 
 // logic
 export { toDateKey, formatDateTime, addDays, newId } from './logic/date.ts';

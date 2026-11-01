@@ -9,6 +9,8 @@
 |---|---|---|
 | `packages/app-core` | 공통 기능 (인앱 업데이트, 알림, 저장소, 사진, UI) | 프랜차이즈 공용 주방 설비 |
 | `packages/app-config` | 공통 빌드 설정 (OTA, 버전 정책, 권한, Metro) | 매장 인테리어 표준 도면 |
+| `packages/health-scan` | 건강수첩 사진 인식 규칙 (결과 형식·AI 지시문·검증·가져오기 계획) | 서류 접수 기준표 |
+| `services/scan-api` | 사진 인식 서버 (Claude API, 키는 서버에만) | 서류 판독 창구 |
 | `templates/expo-app` | 새 앱 뼈대 | 신규 매장 오픈 키트 |
 | `apps/<slug>` | 실제 앱 (현재: `pet` 다로펫) | 개별 매장 |
 | `manifests/<slug>.json` | 앱별 최신/최소 지원 버전 | 매장 공지판 |

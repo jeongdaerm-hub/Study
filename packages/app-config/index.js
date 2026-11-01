@@ -72,6 +72,8 @@ function createAppConfig(o) {
     extra: {
       ...(o.extra || {}),
       versionManifestUrl: o.versionManifestUrl || `${manifestBase}/${o.slug}.json`,
+      // 사진 인식 등 앱 전용 API 주소 (비밀값 아님. API 키는 서버에만)
+      ...(o.apiUrl ? { apiUrl: o.apiUrl } : {}),
       ...(o.easProjectId ? { eas: { projectId: o.easProjectId } } : {}),
     },
   };
