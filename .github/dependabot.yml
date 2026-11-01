@@ -1,4 +1,8 @@
 # 의존성 보안 업데이트 자동 PR (매주)
+#
+# 원칙: Expo SDK 가 버전을 정하는 패키지는 'SDK 업그레이드' 때 한꺼번에 올림
+#  - 개별 메이저 업데이트 PR 은 만들지 않음 (앱·공통 모듈 호환이 깨질 수 있음)
+#  - 보안 패치(패치·마이너)는 계속 받음
 version: 2
 updates:
   - package-ecosystem: npm
@@ -7,11 +11,40 @@ updates:
       interval: weekly
       day: monday
     open-pull-requests-limit: 5
+    ignore:
+      # SDK 가 관리하는 패키지: 메이저는 `npx expo install expo@<새 SDK> --fix` 로 함께 올림
+      - dependency-name: 'expo'
+        update-types: ['version-update:semver-major']
+      - dependency-name: 'expo-*'
+        update-types: ['version-update:semver-major']
+      - dependency-name: '@expo/*'
+        update-types: ['version-update:semver-major']
+      - dependency-name: 'react'
+        update-types: ['version-update:semver-major']
+      - dependency-name: 'react-dom'
+        update-types: ['version-update:semver-major']
+      - dependency-name: 'react-native'
+        update-types: ['version-update:semver-major', 'version-update:semver-minor']
+      - dependency-name: 'react-native-*'
+        update-types: ['version-update:semver-major']
+      - dependency-name: '@react-native-*/*'
+        update-types: ['version-update:semver-major']
+      - dependency-name: '@types/react'
+        update-types: ['version-update:semver-major']
+      # Expo SDK 템플릿이 정한 TypeScript 버전 유지
+      - dependency-name: 'typescript'
+        update-types: ['version-update:semver-major']
+      # 실행 환경(Node 22)과 타입 정의 버전을 맞춤
+      - dependency-name: '@types/node'
+        update-types: ['version-update:semver-major']
     groups:
-      expo-sdk:
-        patterns: ['expo', 'expo-*', '@expo/*', 'react', 'react-native', 'react-dom', 'react-native-*']
+      expo-sdk-patches:
+        patterns: ['expo', 'expo-*', '@expo/*', 'react', 'react-dom', 'react-native', 'react-native-*', '@react-native-*/*']
         update-types: ['patch']
   - package-ecosystem: github-actions
     directory: /
     schedule:
       interval: monthly
+    groups:
+      actions:
+        patterns: ['*']
