@@ -18,6 +18,22 @@ export async function loadList<T>(key: string): Promise<T[]> {
   }
 }
 
-export async function saveList<T>(key: string, list: T[]): Promise<void> {
-  await AsyncStorage.setItem(key, JSON.stringify(list));
+/**
+ * 저장 실패(용량 초과, 브라우저 저장소 차단 등)가 앱을 멈추지 않도록 false 반환
+ */
+export async function saveList<T>(key: string, list: T[]): Promise<boolean> {
+  try {
+    await AsyncStorage.setItem(key, JSON.stringify(list));
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * 저장된 데이터 검증 로드: 형식이 깨진 항목은 버림 (손상·변조 데이터로 인한 크래시 방지)
+ */
+export async function loadValidList<T>(key: string, isValid: (x: unknown) => x is T): Promise<T[]> {
+  const raw = await loadList<unknown>(key);
+  return raw.filter(isValid);
 }

@@ -14,10 +14,10 @@ test('공통 업데이트 구조가 항상 들어감', () => {
 });
 
 test('기능 선택에 따라 플러그인/권한만 켜짐', () => {
-  assert.equal(createAppConfig(base).plugins.length, 0);
+  assert.deepEqual(createAppConfig(base).plugins, ['@react-native-community/datetimepicker']);
   const c = createAppConfig({ ...base, features: ['notifications', 'photos'] });
   const names = c.plugins.map((p) => (Array.isArray(p) ? p[0] : p));
-  assert.deepEqual(names, ['expo-notifications', 'expo-image-picker']);
+  assert.deepEqual(names, ['expo-notifications', 'expo-image-picker', '@react-native-community/datetimepicker']);
   assert.equal(c.plugins[1][1].cameraPermission, false);
   assert.ok(c.android.permissions.includes('android.permission.POST_NOTIFICATIONS'));
 });

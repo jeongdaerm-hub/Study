@@ -16,6 +16,8 @@ export { useAppUpdate, type AppUpdateState, type UpdateStatus } from './update/u
 export {
   decideStoreUpdate,
   isValidManifest,
+  isSafeStoreUrl,
+  sanitizeManifest,
   shouldShowBanner,
   type StoreUpdateLevel,
   type VersionManifest,
@@ -28,11 +30,12 @@ export {
   scheduleReminder,
   cancelReminder,
   formatBefore,
+  notificationsSupported,
   type ReminderInput,
 } from './notifications/scheduler.ts';
 
 // storage
-export { loadList, saveList, storageKey } from './storage/store.ts';
+export { loadList, loadValidList, saveList, storageKey } from './storage/store.ts';
 export { pickPhotos, deletePhotos, MAX_PHOTOS, type PickPhotoMessages } from './storage/photos.ts';
 
 // logic
@@ -52,3 +55,4 @@ export {
 export { ThemeProvider, useTheme, defaultTheme, type Theme } from './ui/theme.tsx';
 export { Chip, ChipRow, SelectChips, PrimaryButton, Fab, Label } from './ui/components.tsx';
 export { DateTimeField } from './ui/DateTimeField.tsx';
+export { DialogProvider, DialogHost, useDialog } from './ui/Dialog.tsx';

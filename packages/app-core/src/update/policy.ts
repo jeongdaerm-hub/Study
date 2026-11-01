@@ -42,3 +42,53 @@ export function shouldShowBanner(
   if (level === 'none') return false;
   return dismissedVersion !== latestVersion;
 }
+
+/* ─────────────── 보안: 매니페스트는 외부 입력 → 신뢰하지 않음 ─────────────── */
+
+/**
+ * 스토어 이동 URL 허용 목록
+ * 매니페스트가 변조돼도 피싱 사이트로 보내지 못하도록 스토어 주소만 허용
+ */
+const STORE_URL_PATTERNS: RegExp[] = [
+  /^market:\/\/details\?id=[A-Za-z0-9._]+$/,
+  /^https:\/\/play\.google\.com\/store\/apps\/details\?id=[A-Za-z0-9._]+$/,
+  /^itms-apps:\/\/apps\.apple\.com\/[a-z/]*app\/(?:[\w-]+\/)?id\d+$/,
+  /^https:\/\/apps\.apple\.com\/[a-z/]*app\/(?:[\w-]+\/)?id\d+$/,
+];
+
+export function isSafeStoreUrl(url: unknown): url is string {
+  return typeof url === 'string' && url.length < 300 && STORE_URL_PATTERNS.some((p) => p.test(url));
+}
+
+const SEMVER = /^v?\d{1,4}(\.\d{1,4}){0,2}$/;
+const MAX_NOTES = 5;
+const MAX_NOTE_LEN = 120;
+
+/**
+ * 매니페스트 정제: 형식 검증 + 버전 형식 강제 + 문구 길이 제한 + 위험 URL 제거
+ * 통과 못 하면 null → 업데이트 안내 안 함 (fail-open)
+ */
+export function sanitizeManifest(data: unknown): VersionManifest | null {
+  if (!isValidManifest(data)) return null;
+  if (!SEMVER.test(data.latestVersion) || !SEMVER.test(data.minSupportedVersion)) return null;
+  const notes = Array.isArray(data.releaseNotes)
+    ? data.releaseNotes
+        .filter((n): n is string => typeof n === 'string')
+        .slice(0, MAX_NOTES)
+        .map((n) => n.slice(0, MAX_NOTE_LEN))
+    : [];
+  return {
+    latestVersion: data.latestVersion,
+    minSupportedVersion: data.minSupportedVersion,
+    releaseNotes: notes,
+    storeUrl: {
+      android: isSafeStoreUrl(data.storeUrl.android) ? data.storeUrl.android : undefined,
+      ios: isSafeStoreUrl(data.storeUrl.ios) ? data.storeUrl.ios : undefined,
+    },
+  };
+}
+
+/** 매니페스트 주소는 HTTPS 만 허용 (중간자 변조 방지) */
+export function isSecureManifestUrl(url: string): boolean {
+  return /^https:\/\/[^\s/]+\/\S+$/.test(url);
+}

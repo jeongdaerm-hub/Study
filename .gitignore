@@ -7,3 +7,4 @@ apps/*/ios/
 *.log
 .env
 .env.*
+dist-web/

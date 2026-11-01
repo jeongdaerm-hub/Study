@@ -36,3 +36,40 @@ test('shouldShowBanner', () => {
   assert.equal(shouldShowBanner('force', '1.2.0', '1.2.0'), true);
   assert.equal(shouldShowBanner('none', '1.2.0', null), false);
 });
+
+test('isSafeStoreUrl: 스토어 주소만 허용', async () => {
+  const { isSafeStoreUrl } = await import('../src/update/policy.ts');
+  assert.equal(isSafeStoreUrl('market://details?id=com.daro.pet'), true);
+  assert.equal(isSafeStoreUrl('https://play.google.com/store/apps/details?id=com.daro.pet'), true);
+  assert.equal(isSafeStoreUrl('itms-apps://apps.apple.com/app/id123456789'), true);
+  assert.equal(isSafeStoreUrl('https://apps.apple.com/kr/app/daro/id123456789'), true);
+  assert.equal(isSafeStoreUrl('https://evil.example.com/phish'), false);
+  assert.equal(isSafeStoreUrl('https://play.google.com.evil.com/store/apps/details?id=x'), false);
+  assert.equal(isSafeStoreUrl('javascript:alert(1)'), false);
+  assert.equal(isSafeStoreUrl('market://details?id=com.daro.pet&x=<script>'), false);
+  assert.equal(isSafeStoreUrl(undefined), false);
+});
+
+test('sanitizeManifest: 변조/과도한 입력 정제', async () => {
+  const { sanitizeManifest } = await import('../src/update/policy.ts');
+  const ok = sanitizeManifest({
+    latestVersion: '1.2.0',
+    minSupportedVersion: '1.0.0',
+    releaseNotes: ['a'.repeat(500), 1, 'b', 'c', 'd', 'e', 'f'],
+    storeUrl: { android: 'https://evil.com', ios: 'itms-apps://apps.apple.com/app/id1' },
+  });
+  if (!ok) throw new Error('sanitizeManifest returned null');
+  assert.equal(ok.storeUrl.android, undefined);
+  assert.equal(ok.storeUrl.ios, 'itms-apps://apps.apple.com/app/id1');
+  assert.equal(ok.releaseNotes!.length, 5);
+  assert.equal(ok.releaseNotes![0].length, 120);
+  assert.equal(sanitizeManifest({ latestVersion: '1.0; drop', minSupportedVersion: '1.0.0', storeUrl: {} }), null);
+  assert.equal(sanitizeManifest('{}'), null);
+});
+
+test('isSecureManifestUrl: HTTPS 만 허용', async () => {
+  const { isSecureManifestUrl } = await import('../src/update/policy.ts');
+  assert.equal(isSecureManifestUrl('https://cdn.example.com/pet.json'), true);
+  assert.equal(isSecureManifestUrl('http://cdn.example.com/pet.json'), false);
+  assert.equal(isSecureManifestUrl('file:///etc/passwd'), false);
+});

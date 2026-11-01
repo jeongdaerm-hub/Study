@@ -1,19 +1,21 @@
 import React, { useState } from 'react';
-import { Alert, Modal, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { Text } from 'react-native';
+import { DateTimeField, Label, newId, notificationsSupported, REMIND_OPTIONS, REPEAT_LABEL, SelectChips, useDialog, type Repeat } from '@daro/app-core';
 import type { Schedule, ScheduleType } from '../types.ts';
-import { Chip, ChipRow, DateTimeField, Label, PrimaryButton, REMIND_OPTIONS, REPEAT_LABEL, newId, type Repeat } from '@daro/app-core';
-import { PetSelector } from '../components/PetSelector.tsx';
+import { SCHEDULE_EMOJI, SCHEDULE_LABEL } from '../labels.ts';
+import { useAppData } from '../state/AppData.tsx';
+import { cleanText, LIMITS } from '../logic/validate.ts';
+import { Field, FormModal, s } from '../components/common.tsx';
 import { color } from '../theme.ts';
 
-const TYPES: ScheduleType[] = ['병원', '예방접종', '구충제', '미용', '산책', '기타'];
 const REPEATS: Repeat[] = ['none', 'daily', 'weekly', 'monthly'];
-
-interface Props {
-  initial?: Schedule;
-  defaultPetId: string;
-  onClose: () => void;
-  onSave: (s: Schedule) => Promise<void>;
-}
+const PLACEHOLDER: Record<ScheduleType, string> = {
+  vaccine: '예) 광견병 접종',
+  medicine: '예) 심장사상충 예방약',
+  hospital: '예) 신장 수치 재검',
+  grooming: '예) 미용 예약',
+  etc: '예) 사료 주문',
+};
 
 function defaultTime(): Date {
   const d = new Date();
@@ -21,84 +23,66 @@ function defaultTime(): Date {
   return d;
 }
 
-export function ScheduleEditor({ initial, defaultPetId, onClose, onSave }: Props) {
-  const [petId, setPetId] = useState(initial?.petId ?? defaultPetId);
-  const [type, setType] = useState<ScheduleType>(initial?.type ?? '병원');
+export function ScheduleEditor({ petId, initial, onClose }: { petId: string; initial?: Schedule; onClose: () => void }) {
+  const { saveSchedule, remove } = useAppData();
+  const { notify, confirm } = useDialog();
+  const [type, setType] = useState<ScheduleType>(initial?.type ?? 'medicine');
   const [title, setTitle] = useState(initial?.title ?? '');
   const [when, setWhen] = useState(initial ? new Date(initial.dateTime) : defaultTime());
-  const [remind, setRemind] = useState(initial?.remindBefore ?? 60);
-  const [repeat, setRepeat] = useState<Repeat>(initial?.repeat ?? 'none');
-  const [saving, setSaving] = useState(false);
+  const [remind, setRemind] = useState(initial?.remindBefore ?? 0);
+  const [repeat, setRepeat] = useState<Repeat>(initial?.repeat ?? (type === 'medicine' ? 'daily' : 'none'));
+  const [memo, setMemo] = useState(initial?.memo ?? '');
 
   const save = async () => {
-    if (repeat === 'none' && when.getTime() < Date.now()) {
-      Alert.alert('일정', '지난 시간에는 알림을 드릴 수 없어요. 시간을 확인해 주세요.');
-      return;
+    if (repeat === 'none' && when.getTime() < Date.now() && !initial) {
+      const ok = await confirm({ title: '지난 시간', message: '이미 지난 시간이라 알림은 울리지 않아요. 그래도 저장할까요?', confirmText: '저장' });
+      if (!ok) return;
     }
-    setSaving(true);
-    try {
-      await onSave({
-        id: initial?.id ?? newId(),
-        petId,
-        type,
-        title: title.trim() || type,
-        dateTime: when.toISOString(),
-        remindBefore: remind,
-        repeat,
-        done: false,
-        notificationId: initial?.notificationId,
-      });
-      onClose();
-    } finally {
-      setSaving(false);
-    }
+    const t = cleanText(title, LIMITS.short) || SCHEDULE_LABEL[type];
+    if (t.length > LIMITS.short) return notify('입력 확인', '제목이 너무 길어요.');
+    await saveSchedule({
+      id: initial?.id ?? newId(),
+      petId,
+      type,
+      title: t,
+      memo: cleanText(memo),
+      dateTime: when.toISOString(),
+      remindBefore: remind,
+      repeat,
+      done: false,
+      notificationId: initial?.notificationId,
+    });
+    onClose();
   };
+  const del = initial
+    ? async () => {
+        if (await confirm({ title: '일정 삭제', message: `'${initial.title}' 일정과 알림을 삭제할까요?`, confirmText: '삭제', destructive: true })) {
+          await remove('schedules', initial.id);
+          onClose();
+        }
+      }
+    : undefined;
 
   return (
-    <Modal visible animationType="slide" onRequestClose={onClose}>
-      <View style={s.header}>
-        <Pressable onPress={onClose}><Text style={s.headerBtn}>취소</Text></Pressable>
-        <Text style={s.headerTitle}>{initial ? '일정 수정' : '새 일정'}</Text>
-        <View style={{ width: 40 }} />
-      </View>
-      <ScrollView contentContainerStyle={s.body} keyboardShouldPersistTaps="handled">
-        <Label>반려동물</Label>
-        <PetSelector value={petId} onChange={setPetId} />
-
-        <Label>종류</Label>
-        <ChipRow>
-          {TYPES.map((t) => <Chip key={t} label={t} selected={type === t} onPress={() => setType(t)} />)}
-        </ChipRow>
-
-        <Label>내용</Label>
-        <TextInput style={s.input} placeholder={`예) ${type === '병원' ? '다로동물병원 정기검진' : type}`} value={title} onChangeText={setTitle} maxLength={60} />
-
-        <Label>날짜와 시간</Label>
-        <DateTimeField value={when} onChange={setWhen} />
-
-        <Label>알림</Label>
-        <ChipRow>
-          {REMIND_OPTIONS.map((o) => (
-            <Chip key={o.minutes} label={o.label} selected={remind === o.minutes} onPress={() => setRemind(o.minutes)} />
-          ))}
-        </ChipRow>
-
-        <Label>반복</Label>
-        <ChipRow>
-          {REPEATS.map((r) => <Chip key={r} label={REPEAT_LABEL[r]} selected={repeat === r} onPress={() => setRepeat(r)} />)}
-        </ChipRow>
-
-        <View style={{ height: 24 }} />
-        <PrimaryButton label={saving ? '저장 중…' : '저장하고 알림 받기'} onPress={save} disabled={saving} />
-      </ScrollView>
-    </Modal>
+    <FormModal title={initial ? '일정 수정' : '새 일정'} onClose={onClose} onSave={save} onDelete={del}>
+      <Label>종류</Label>
+      <SelectChips
+        value={type}
+        onChange={(t) => {
+          setType(t);
+          if (!initial && t === 'medicine') setRepeat('daily');
+        }}
+        options={(Object.keys(SCHEDULE_LABEL) as ScheduleType[]).map((k) => ({ value: k, label: `${SCHEDULE_EMOJI[k]} ${SCHEDULE_LABEL[k]}` }))}
+      />
+      <Field label="제목" value={title} onChangeText={setTitle} placeholder={PLACEHOLDER[type]} maxLength={LIMITS.short} />
+      <Label>날짜와 시간</Label>
+      <DateTimeField value={when} onChange={setWhen} />
+      <Label>알림</Label>
+      <SelectChips value={remind} onChange={setRemind} options={REMIND_OPTIONS.map((o) => ({ value: o.minutes, label: o.label }))} />
+      <Label>반복</Label>
+      <SelectChips value={repeat} onChange={setRepeat} options={REPEATS.map((r) => ({ value: r, label: REPEAT_LABEL[r] }))} />
+      <Field label="메모" value={memo} onChangeText={setMemo} multiline maxLength={LIMITS.text} placeholder="예) 공복 8시간 유지, 용량 1정" />
+      {!notificationsSupported && <Text style={[s.hint, { color: color.warn }]}>※ 웹 미리보기에서는 알림이 울리지 않아요. 앱에서는 설정한 시간에 알려드려요.</Text>}
+    </FormModal>
   );
 }
-
-const s = StyleSheet.create({
-  header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: 16, paddingTop: 48, borderBottomWidth: 1, borderColor: color.line },
-  headerBtn: { color: color.sub, fontSize: 15, width: 40 },
-  headerTitle: { fontSize: 17, fontWeight: '700' },
-  body: { padding: 16, paddingBottom: 48 },
-  input: { borderWidth: 1, borderColor: color.line, borderRadius: 10, padding: 12, fontSize: 15, backgroundColor: '#fff' },
-});

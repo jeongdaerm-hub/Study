@@ -39,6 +39,8 @@ function createAppConfig(o) {
       },
     ]);
   }
+  // 공통 날짜·시간 선택(@daro/app-core DateTimeField) 네이티브 설정
+  plugins.push('@react-native-community/datetimepicker');
   plugins.push(...(o.plugins || []));
 
   const manifestBase = (o.manifestBaseUrl || DEFAULT_MANIFEST_BASE_URL).replace(/\/$/, '');
@@ -57,7 +59,15 @@ function createAppConfig(o) {
       ...(o.easProjectId ? { url: `https://u.expo.dev/${o.easProjectId}` } : {}),
     },
     ios: { bundleIdentifier: o.bundleId, supportsTablet: false },
-    android: { package: o.bundleId, permissions: androidPermissions },
+    // 웹 미리보기 (기획·QA 확인용 정적 빌드)
+    web: { bundler: 'metro', output: 'single', name: o.name, themeColor: o.brandColor },
+    android: {
+      package: o.bundleId,
+      permissions: androidPermissions,
+      // 보안: 불필요한 권한 차단 + 앱 데이터 클라우드 자동 백업 해제(기기 밖 유출 방지)
+      blockedPermissions: ['android.permission.RECORD_AUDIO', 'android.permission.ACCESS_FINE_LOCATION'],
+      allowBackup: false,
+    },
     plugins,
     extra: {
       ...(o.extra || {}),

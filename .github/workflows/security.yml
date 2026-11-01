@@ -1,0 +1,55 @@
+# 보안 점검: PR·main 푸시·매주 월요일 자동 실행
+#  - 의존성 취약점 (npm audit, moderate 이상이면 실패)
+#  - 비밀키·위험 코드 패턴 (자체 스캐너)
+#  - 비밀키 유출 이력 (gitleaks, 전체 git 이력)
+#  - 정적 분석 SAST (CodeQL: XSS, 인젝션, 경로 조작 등)
+name: Security
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  schedule:
+    - cron: '17 1 * * 1' # 매주 월 10:17 KST
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  dependencies:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci --ignore-scripts
+      - name: npm audit (moderate 이상 차단)
+        run: npm audit --audit-level=moderate
+      - name: 자체 보안 스캔
+        run: node scripts/security-scan.mjs
+
+  secrets:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  codeql:
+    runs-on: ubuntu-latest
+    permissions:
+      security-events: write
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: github/codeql-action/init@v3
+        with:
+          languages: javascript-typescript
+          queries: security-extended
+      - uses: github/codeql-action/analyze@v3

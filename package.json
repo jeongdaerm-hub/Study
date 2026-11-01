@@ -10,15 +10,22 @@
     "test": "npm run test --workspaces --if-present",
     "typecheck": "npm run typecheck --workspaces --if-present",
     "validate:manifests": "node --experimental-strip-types scripts/validate-manifests.mjs",
-    "check": "npm test && npm run typecheck && npm run validate:manifests",
+    "check": "npm test && npm run typecheck && npm run validate:manifests && node scripts/security-scan.mjs",
     "new-app": "node scripts/create-app.mjs",
-    "release:manifest": "node --experimental-strip-types scripts/release-manifest.mjs"
+    "release:manifest": "node --experimental-strip-types scripts/release-manifest.mjs",
+    "security": "node scripts/security-scan.mjs && npm audit --audit-level=moderate"
   },
   "devDependencies": {
-    "@types/react": "~18.2.79",
-    "typescript": "~5.3.3"
+    "@types/node": "^22.0.0",
+    "@types/react": "~19.3.0",
+    "typescript": "~6.0.3"
   },
   "engines": {
     "node": ">=22.6"
-  }
+  },
+  "overrides": {
+    "glob": "^14.0.3",
+    "minimatch": "^11.0.3"
+  },
+  "//overrides": "보안 패치: expo-updates 경유 glob(GHSA-3g3m-2fjr-6pw4), minimatch(GHSA-g3hv-75wg-m249). Expo 가 자체 업데이트하면 제거"
 }
