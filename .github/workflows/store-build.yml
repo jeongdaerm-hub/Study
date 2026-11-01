@@ -1,0 +1,51 @@
+# 스토어(네이티브) 빌드: 네이티브 변경 시 사용. 빌드는 EAS 클라우드에서 진행
+# 필요 시크릿: EXPO_TOKEN
+name: Store Build
+
+on:
+  workflow_dispatch:
+    inputs:
+      app:
+        description: 'apps/ 아래 폴더명 (예: pet)'
+        required: true
+      platform:
+        type: choice
+        options: [all, android, ios]
+        default: all
+      profile:
+        type: choice
+        options: [production, preview, development]
+        default: production
+      submit:
+        description: '빌드 후 스토어 제출 (production 만)'
+        type: boolean
+        default: false
+
+# 앱 설정에 들어가는 공개 값은 GitHub Variables 에서 읽음 (비밀값 아님)
+env:
+  DARO_SCAN_API_URL: ${{ vars.DARO_SCAN_API_URL }}
+  EAS_PROJECT_ID_PET: ${{ vars.EAS_PROJECT_ID_PET }}
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - name: Validate app
+        run: test -d "apps/${{ inputs.app }}" || { echo "apps/${{ inputs.app }} 없음"; exit 1; }
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci --ignore-scripts
+      - run: npm run check
+      - uses: expo/expo-github-action@v8
+        with:
+          eas-version: latest
+          token: ${{ secrets.EXPO_TOKEN }}
+      - name: Build
+        working-directory: apps/${{ inputs.app }}
+        run: |
+          SUBMIT=""
+          if [ "${{ inputs.submit }}" = "true" ] && [ "${{ inputs.profile }}" = "production" ]; then SUBMIT="--auto-submit"; fi
+          eas build --platform "${{ inputs.platform }}" --profile "${{ inputs.profile }}" --non-interactive --no-wait $SUBMIT

@@ -1,0 +1,13 @@
+{
+  "latestVersion": "1.2.0",
+  "minSupportedVersion": "1.0.0",
+  "releaseNotes": [
+    "산책 기록에 거리/시간 자동 측정 추가",
+    "예방접종 알림 시간 설정 기능",
+    "펫 프로필 사진 업로드 속도 개선"
+  ],
+  "storeUrl": {
+    "android": "market://details?id=com.daro.pet",
+    "ios": "itms-apps://apps.apple.com/app/id0000000000"
+  }
+}
