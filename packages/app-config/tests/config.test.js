@@ -26,3 +26,16 @@ test('매니페스트 URL 커스터마이즈', () => {
   const c = createAppConfig({ ...base, manifestBaseUrl: 'https://cdn.example.com/m/' });
   assert.equal(c.extra.versionManifestUrl, 'https://cdn.example.com/m/demo.json');
 });
+
+test('불필요·위험 안드로이드 권한 차단', () => {
+  const blocked = createAppConfig(base).android.blockedPermissions;
+  for (const p of ['SYSTEM_ALERT_WINDOW', 'READ_EXTERNAL_STORAGE', 'WRITE_EXTERNAL_STORAGE', 'RECORD_AUDIO', 'ACCESS_FINE_LOCATION']) {
+    assert.ok(blocked.includes(`android.permission.${p}`), p);
+  }
+  assert.equal(createAppConfig(base).android.allowBackup, false);
+});
+
+test('카메라 기능을 켜면 CAMERA 권한 선언', () => {
+  assert.ok(createAppConfig({ ...base, features: ['camera'] }).android.permissions.includes('android.permission.CAMERA'));
+  assert.ok(!createAppConfig({ ...base, features: ['photos'] }).android.permissions.includes('android.permission.CAMERA'));
+});

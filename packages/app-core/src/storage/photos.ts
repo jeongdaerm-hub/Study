@@ -88,7 +88,9 @@ async function launch(
   remain: number,
   msg: PickPhotoMessages,
 ): Promise<ImagePicker.ImagePickerSuccessResult | null> {
-  if (!isWeb) {
+  // 안드로이드 사진 선택기는 저장소 권한 없이 동작 (저장소 권한은 앱 설정에서 차단)
+  const needsPermission = source === 'camera' ? !isWeb : Platform.OS === 'ios';
+  if (needsPermission) {
     const perm =
       source === 'camera'
         ? await ImagePicker.requestCameraPermissionsAsync()

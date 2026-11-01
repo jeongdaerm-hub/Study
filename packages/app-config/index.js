@@ -28,6 +28,7 @@ function createAppConfig(o) {
     plugins.push(['expo-notifications', { color: o.brandColor }]);
     androidPermissions.push('android.permission.POST_NOTIFICATIONS', 'android.permission.SCHEDULE_EXACT_ALARM');
   }
+  if (features.has('camera')) androidPermissions.push('android.permission.CAMERA');
   if (features.has('photos') || features.has('camera')) {
     plugins.push([
       'expo-image-picker',
@@ -65,7 +66,15 @@ function createAppConfig(o) {
       package: o.bundleId,
       permissions: androidPermissions,
       // 보안: 불필요한 권한 차단 + 앱 데이터 클라우드 자동 백업 해제(기기 밖 유출 방지)
-      blockedPermissions: ['android.permission.RECORD_AUDIO', 'android.permission.ACCESS_FINE_LOCATION'],
+      blockedPermissions: [
+        'android.permission.RECORD_AUDIO',
+        'android.permission.ACCESS_FINE_LOCATION',
+        // 다른 앱 위에 그리기: 불필요하고 피싱 화면 등에 악용될 수 있음
+        'android.permission.SYSTEM_ALERT_WINDOW',
+        // 전체 저장소 접근: 안드로이드 사진 선택기는 권한 없이 동작
+        'android.permission.READ_EXTERNAL_STORAGE',
+        'android.permission.WRITE_EXTERNAL_STORAGE',
+      ],
       allowBackup: false,
     },
     plugins,
