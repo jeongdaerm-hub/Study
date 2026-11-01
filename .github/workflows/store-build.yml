@@ -21,6 +21,11 @@ on:
         type: boolean
         default: false
 
+# 앱 설정에 들어가는 공개 값은 GitHub Variables 에서 읽음 (비밀값 아님)
+env:
+  DARO_SCAN_API_URL: ${{ vars.DARO_SCAN_API_URL }}
+  EAS_PROJECT_ID_PET: ${{ vars.EAS_PROJECT_ID_PET }}
+
 jobs:
   build:
     runs-on: ubuntu-latest
