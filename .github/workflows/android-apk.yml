@@ -48,17 +48,30 @@ jobs:
           java-version: 17
       - uses: actions/cache@v4
         with:
-          path: |
-            ~/.gradle/caches
-            ~/.gradle/wrapper
-          key: gradle-${{ runner.os }}-${{ hashFiles('package-lock.json') }}
-          restore-keys: gradle-${{ runner.os }}-
+          path: ~/.gradle/wrapper
+          key: gradle-wrapper-${{ runner.os }}-${{ hashFiles('package-lock.json') }}
+          restore-keys: gradle-wrapper-${{ runner.os }}-
+      - uses: actions/cache@v4
+        with:
+          path: ~/.gradle/caches
+          key: gradle-caches-${{ runner.os }}-${{ hashFiles('package-lock.json') }}
+          restore-keys: gradle-caches-${{ runner.os }}-
       - run: npm ci --ignore-scripts
       - run: npm run check
 
       - name: 네이티브 프로젝트 생성
         working-directory: apps/${{ env.APP }}
         run: npx expo prebuild --platform android --no-install --clean
+
+      # Gradle 배포 서버가 잠깐 응답하지 않을 때(5xx) 빌드 전체가 실패하지 않도록 내려받기만 재시도
+      - name: Gradle 준비 (최대 3회 재시도)
+        working-directory: apps/${{ env.APP }}/android
+        run: |
+          for i in 1 2 3; do
+            ./gradlew --version --no-daemon && exit 0
+            echo "Gradle 내려받기 실패 ($i/3), 30초 후 재시도"; sleep 30
+          done
+          exit 1
 
       - name: APK 빌드 (arm64, 최신 휴대폰 대부분)
         working-directory: apps/${{ env.APP }}/android
