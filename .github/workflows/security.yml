@@ -30,6 +30,20 @@ jobs:
         run: npm audit --audit-level=moderate
       - name: 자체 보안 스캔
         run: node scripts/security-scan.mjs
+      # Expo·React Native 는 Dependabot 이 다루지 않으므로 새 패치가 있으면 요약에 안내 (실패 처리 안 함)
+      - name: Expo SDK 패치 확인
+        run: |
+          out=$(npm outdated expo 'expo-*' '@expo/metro-runtime' --workspace @daro/pet 2>/dev/null || true)
+          if [ -n "$out" ]; then
+            {
+              echo "### 📦 Expo SDK 패치 있음"
+              echo '`cd apps/pet && npx expo install expo@~<SDK>.0.0 --fix` 후 `rm package-lock.json && npm install`'
+              echo '```'; echo "$out"; echo '```'
+            } >> "$GITHUB_STEP_SUMMARY"
+            echo "$out"
+          else
+            echo "Expo SDK 최신 패치 사용 중" | tee -a "$GITHUB_STEP_SUMMARY"
+          fi
 
   secrets:
     runs-on: ubuntu-latest
