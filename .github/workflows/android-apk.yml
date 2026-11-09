@@ -1,0 +1,127 @@
+# 테스트용 안드로이드 APK 빌드 (EAS·토큰 없이 GitHub 서버에서 직접 빌드)
+#  - PR·main 에 앱 코드가 바뀌면 자동 빌드
+#  - 결과: ① Actions 실행 화면의 Artifacts  ② Releases 의 '<앱>-android-test' (휴대폰에서 바로 다운로드)
+#  - 테스트 키로 서명된 APK → 스토어 배포용 아님 (스토어는 Store Build 워크플로)
+name: Android Test APK
+
+on:
+  pull_request:
+    paths: ['apps/**', 'packages/**', 'package-lock.json', '.github/workflows/android-apk.yml']
+  push:
+    branches: [main]
+    paths: ['apps/**', 'packages/**', 'package-lock.json', '.github/workflows/android-apk.yml']
+  workflow_dispatch:
+    inputs:
+      app:
+        description: 'apps/ 아래 폴더명'
+        default: pet
+        required: true
+
+permissions:
+  contents: write # 테스트 릴리스에 APK 올리기
+
+concurrency:
+  group: android-apk-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  APP: ${{ inputs.app || 'pet' }}
+  # 앱 설정에 들어가는 공개 값 (비밀값 아님)
+  DARO_SCAN_API_URL: ${{ vars.DARO_SCAN_API_URL }}
+  EAS_PROJECT_ID_PET: ${{ vars.EAS_PROJECT_ID_PET }}
+
+jobs:
+  apk:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v7
+      - name: Validate app
+        run: test -d "apps/$APP" || { echo "apps/$APP 없음"; exit 1; }
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: npm
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+      - uses: actions/cache@v4
+        with:
+          path: ~/.gradle/wrapper
+          key: gradle-wrapper-${{ runner.os }}-${{ hashFiles('package-lock.json') }}
+          restore-keys: gradle-wrapper-${{ runner.os }}-
+      - uses: actions/cache@v4
+        with:
+          path: ~/.gradle/caches
+          key: gradle-caches-${{ runner.os }}-${{ hashFiles('package-lock.json') }}
+          restore-keys: gradle-caches-${{ runner.os }}-
+      - run: npm ci --ignore-scripts
+      - run: npm run check
+
+      - name: 네이티브 프로젝트 생성
+        working-directory: apps/${{ env.APP }}
+        run: npx expo prebuild --platform android --no-install --clean
+
+      # Gradle 배포 서버가 잠깐 응답하지 않을 때(5xx) 빌드 전체가 실패하지 않도록 내려받기만 재시도
+      - name: Gradle 준비 (최대 3회 재시도)
+        working-directory: apps/${{ env.APP }}/android
+        run: |
+          for i in 1 2 3; do
+            ./gradlew --version --no-daemon && exit 0
+            echo "Gradle 내려받기 실패 ($i/3), 30초 후 재시도"; sleep 30
+          done
+          exit 1
+
+      - name: APK 빌드 (arm64, 최신 휴대폰 대부분)
+        working-directory: apps/${{ env.APP }}/android
+        env:
+          NODE_ENV: production
+        # 외부 저장소가 잠깐 5xx 를 줄 때를 대비해 의존성 내려받기 재시도 횟수·대기시간 증가
+        run: >-
+          ./gradlew assembleRelease -PreactNativeArchitectures=arm64-v8a --no-daemon --stacktrace
+          -Dorg.gradle.internal.repository.max.retries=6
+          -Dorg.gradle.internal.repository.initial.backoff=2000
+
+      - name: 파일 이름 정리
+        id: apk
+        run: |
+          SHORT=$(git rev-parse --short HEAD)
+          OUT="daro-$APP-$SHORT.apk"
+          cp "apps/$APP/android/app/build/outputs/apk/release/app-release.apk" "$OUT"
+          sha256sum "$OUT" | tee "$OUT.sha256"
+          echo "file=$OUT" >> "$GITHUB_OUTPUT"
+          echo "short=$SHORT" >> "$GITHUB_OUTPUT"
+          echo "size=$(du -h "$OUT" | cut -f1)" >> "$GITHUB_OUTPUT"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: daro-${{ env.APP }}-apk
+          path: |
+            ${{ steps.apk.outputs.file }}
+            ${{ steps.apk.outputs.file }}.sha256
+          retention-days: 14
+
+      # 휴대폰에서 바로 받을 수 있게 테스트 릴리스(사전 배포)에 덮어쓰기
+      - name: 테스트 릴리스 갱신
+        if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
+        env:
+          GH_TOKEN: ${{ github.token }}
+          FILE: ${{ steps.apk.outputs.file }}
+          SHORT: ${{ steps.apk.outputs.short }}
+          SIZE: ${{ steps.apk.outputs.size }}
+        run: |
+          TAG="$APP-android-test"
+          gh release delete "$TAG" --yes --cleanup-tag 2>/dev/null || true
+          {
+            echo "다로 $APP 안드로이드 테스트 버전 (커밋 \`$SHORT\`, $SIZE)"
+            echo
+            echo "1. 휴대폰에서 아래 APK 파일을 눌러 다운로드"
+            echo "2. '출처를 알 수 없는 앱 설치' 허용 후 설치"
+            echo "3. 테스트용 서명이라 스토어 버전과 따로 설치돼요"
+            echo
+            echo "SHA-256: \`$(cut -d' ' -f1 "$FILE.sha256")\`"
+          } > notes.md
+          gh release create "$TAG" "$FILE" --prerelease --target "$GITHUB_SHA" \
+            --title "다로 $APP 테스트 APK ($SHORT)" --notes-file notes.md
+          echo "### 📱 [다운로드](https://github.com/${{ github.repository }}/releases/tag/$TAG)" >> "$GITHUB_STEP_SUMMARY"

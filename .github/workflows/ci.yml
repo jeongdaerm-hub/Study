@@ -1,0 +1,26 @@
+# 모든 앱 공통 품질 게이트: PR/푸시마다 테스트·타입체크·매니페스트 검증·번들 빌드
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci --ignore-scripts
+      - run: npm run check
+      - name: Bundle every app (Metro)
+        run: |
+          for app in apps/*/; do
+            echo "::group::bundle $app"
+            (cd "$app" && npx expo export --platform android --output-dir /tmp/export-$(basename "$app"))
+            echo "::endgroup::"
+          done

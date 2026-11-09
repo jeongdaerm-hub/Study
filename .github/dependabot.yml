@@ -1,0 +1,43 @@
+# 의존성 보안 업데이트 자동 PR (매주)
+#
+# 원칙: Expo SDK 가 버전을 정하는 패키지는 'SDK 업그레이드' 때 한꺼번에 올림
+#  - Expo·React·React Native 계열은 Dependabot 이 다루지 않음 (Expo 호환 표를 모름)
+#    → SDK 패치는 `npx expo install expo@~<SDK>.0.0 --fix` 로 함께 올림
+#  - 그 외 패키지의 보안 패치(패치·마이너)는 계속 받음
+#  - 취약점은 CI 의 npm audit 가 매 PR·매주 따로 검사
+version: 2
+updates:
+  - package-ecosystem: npm
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+    open-pull-requests-limit: 5
+    ignore:
+      # ① React / React Native 계열: Expo SDK 가 정한 정확한 버전 조합을 써야 함
+      #    → 패치 포함 모든 업데이트를 `npx expo install --fix` 로만 변경
+      - dependency-name: 'react'
+      - dependency-name: 'react-dom'
+      - dependency-name: 'react-native'
+      - dependency-name: 'react-native-*'
+      - dependency-name: '@react-native-*/*'
+      - dependency-name: '@types/react'
+      # ② Expo 패키지: Expo 호환 표에 맞춰 `npx expo install --fix` 로만 변경
+      #    (Dependabot 의 npm 이 glob·minimatch 보안 고정(overrides)과 함께 실패함)
+      - dependency-name: 'expo'
+      - dependency-name: 'expo-*'
+      - dependency-name: '@expo/*'
+      # ③ Expo SDK 템플릿이 정한 TypeScript 버전 유지
+      - dependency-name: 'typescript'
+        update-types: ['version-update:semver-major']
+      # ④ 실행 환경(Node 22)과 타입 정의 버전을 맞춤
+      - dependency-name: '@types/node'
+        update-types: ['version-update:semver-major']
+
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: monthly
+    groups:
+      actions:
+        patterns: ['*']

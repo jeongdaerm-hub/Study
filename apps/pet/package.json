@@ -1,0 +1,36 @@
+{
+  "name": "@daro/pet",
+  "version": "1.0.0",
+  "private": true,
+  "main": "index.ts",
+  "scripts": {
+    "start": "expo start",
+    "android": "expo run:android",
+    "ios": "expo run:ios",
+    "test": "node --experimental-strip-types --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --test tests/*.test.ts",
+    "typecheck": "tsc --noEmit",
+    "update:preview": "eas update --channel preview --message",
+    "update:production": "eas update --channel production --message"
+  },
+  "dependencies": {
+    "@daro/app-config": "*",
+    "@daro/app-core": "*",
+    "@daro/health-scan": "*",
+    "@expo/metro-runtime": "~58.0.17",
+    "@react-native-async-storage/async-storage": "2.2.0",
+    "@react-native-community/datetimepicker": "9.2.1",
+    "expo": "~58.0.23",
+    "expo-application": "~58.1.2",
+    "expo-constants": "~58.0.14",
+    "expo-file-system": "~58.0.13",
+    "expo-image-manipulator": "~58.0.16",
+    "expo-image-picker": "~58.0.10",
+    "expo-notifications": "~58.1.8",
+    "expo-updates": "~58.0.21",
+    "react": "19.3.0",
+    "react-dom": "19.3.0",
+    "react-native": "0.88.1",
+    "react-native-svg": "15.16.0",
+    "react-native-web": "~0.21.4"
+  }
+}
