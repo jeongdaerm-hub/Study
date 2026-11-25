@@ -17,7 +17,8 @@ import { useAppData, useCurrentPet } from '../state/AppData.tsx';
 import { detectEngine, ScanFailure, type ScanEngine } from '../scan/engines.ts';
 import { cleanText, LIMITS, parseNumber } from '../logic/validate.ts';
 import { dateFromKey, OptionalDate } from '../components/OptionalDate.tsx';
-import { Card, s } from '../components/common.tsx';
+import { Card, headerInset, s } from '../components/common.tsx';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Check } from './HomeScreen.tsx';
 import { color } from '../theme.ts';
 
@@ -45,6 +46,7 @@ export function ScanFlow({ onClose }: { onClose: () => void }) {
   const [saving, setSaving] = useState(false);
   const [result, setResult] = useState<string>('');
   const ctl = useRef<AbortController | null>(null);
+  const insets = useSafeAreaInsets();
   const today = toDateKey(new Date());
 
   useEffect(() => {
@@ -134,7 +136,7 @@ export function ScanFlow({ onClose }: { onClose: () => void }) {
   return (
     <Modal visible animationType="slide" onRequestClose={onClose}>
       <View style={{ flex: 1, backgroundColor: color.bg }}>
-        <View style={s.header}>
+        <View style={[s.header, headerInset(insets.top)]}>
           <Pressable onPress={onClose} hitSlop={8} accessibilityRole="button">
             <Text style={s.headerBtn}>{step === 'done' ? '닫기' : '취소'}</Text>
           </Pressable>

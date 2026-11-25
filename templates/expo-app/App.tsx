@@ -1,11 +1,14 @@
 import React from 'react';
-import { SafeAreaView, StatusBar, StyleSheet } from 'react-native';
+import { StatusBar, StyleSheet } from 'react-native';
+// 안드로이드도 시계·배터리·아래 버튼 영역을 비워 줌 (react-native 기본 SafeAreaView 는 iOS 전용)
+import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
 import { DialogProvider, TestBuildRibbon, ThemeProvider, UpdateGate } from '@daro/app-core';
 import { HomeScreen } from './src/screens/HomeScreen.tsx';
 import { color } from './src/theme.ts';
 
 export default function App() {
   return (
+    <SafeAreaProvider>
     <SafeAreaView style={s.root}>
       <StatusBar barStyle="dark-content" />
       <ThemeProvider theme={color}>
@@ -19,6 +22,7 @@ export default function App() {
         </DialogProvider>
       </ThemeProvider>
     </SafeAreaView>
+    </SafeAreaProvider>
   );
 }
 

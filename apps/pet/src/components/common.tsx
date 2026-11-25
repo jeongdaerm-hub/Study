@@ -13,6 +13,7 @@ import {
   type ViewStyle,
 } from 'react-native';
 import { DialogHost, Label, PrimaryButton } from '@daro/app-core';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { color } from '../theme.ts';
 import type { Level } from '../logic/logs.ts';
 
@@ -116,17 +117,18 @@ export function FormModal({
   saving?: boolean;
   children: React.ReactNode;
 }) {
+  const insets = useSafeAreaInsets();
   return (
     <Modal visible animationType="slide" onRequestClose={onClose}>
       <KeyboardAvoidingView style={{ flex: 1, backgroundColor: color.bg }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
-        <View style={s.header}>
+        <View style={[s.header, headerInset(insets.top)]}>
           <Pressable onPress={onClose} hitSlop={8} accessibilityRole="button">
             <Text style={s.headerBtn}>취소</Text>
           </Pressable>
           <Text style={s.headerTitle}>{title}</Text>
           <View style={{ width: 40 }} />
         </View>
-        <ScrollView contentContainerStyle={s.body} keyboardShouldPersistTaps="handled">
+        <ScrollView contentContainerStyle={[s.body, { paddingBottom: 48 + insets.bottom }]} keyboardShouldPersistTaps="handled">
           <View style={s.inner}>
             {children}
             <View style={{ height: 24 }} />
@@ -144,6 +146,9 @@ export function FormModal({
     </Modal>
   );
 }
+
+/** 모달 머리글이 시계·배터리 표시와 겹치지 않게 (웹은 고정 여백) */
+export const headerInset = (top: number) => ({ paddingTop: Platform.OS === 'web' ? 16 : Math.max(top, 24) + 12 });
 
 /** 화면 공통 스크롤 틀 (웹에서는 가운데 정렬 + 최대 폭) */
 export function Screen({ children, footer }: { children: React.ReactNode; footer?: React.ReactNode }) {
@@ -173,7 +178,7 @@ export const s = StyleSheet.create({
   segTextOn: { color: color.text, fontWeight: '800' },
   input: { borderWidth: 1, borderColor: color.line, borderRadius: 10, padding: 12, fontSize: 15, backgroundColor: '#fff', color: color.text },
   multi: { minHeight: 96, textAlignVertical: 'top' },
-  header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: 16, paddingTop: Platform.OS === 'web' ? 16 : 52, borderBottomWidth: 1, borderColor: color.line, backgroundColor: '#fff' },
+  header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: 16, borderBottomWidth: 1, borderColor: color.line, backgroundColor: '#fff' },
   headerBtn: { color: color.sub, fontSize: 15, width: 40 },
   headerTitle: { fontSize: 17, fontWeight: '700', color: color.text },
   body: { padding: 16, paddingBottom: 48 },

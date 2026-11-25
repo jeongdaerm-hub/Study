@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { ActivityIndicator, Platform, Pressable, SafeAreaView, StatusBar, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Platform, Pressable, StatusBar, StyleSheet, Text, View } from 'react-native';
+import { SafeAreaProvider, SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { DialogProvider, TestBuildRibbon, ThemeProvider, UpdateGate } from '@daro/app-core';
 import { AppDataProvider, useAppData } from './src/state/AppData.tsx';
 import { HomeScreen } from './src/screens/HomeScreen.tsx';
@@ -21,6 +22,8 @@ const TABS: { key: Tab; label: string; icon: string }[] = [
 
 function Main() {
   const { ready, db, saveError } = useAppData();
+  // 폰 아래쪽 버튼·제스처 영역만큼 탭 바를 올림
+  const insets = useSafeAreaInsets();
   const [tab, setTab] = useState<Tab>('home');
   const [addPet, setAddPet] = useState(false);
   const hasPet = db.pets.length > 0;
@@ -46,7 +49,7 @@ function Main() {
       )}
       <View style={{ flex: 1 }}>{body}</View>
       {hasPet && (
-        <View style={s.tabBar} accessibilityRole="tablist">
+        <View style={[s.tabBar, { paddingBottom: Math.max(insets.bottom, Platform.OS === 'ios' ? 0 : 4) }]} accessibilityRole="tablist">
           {TABS.map((t) => (
             <Pressable
               key={t.key}
@@ -69,7 +72,9 @@ function Main() {
 
 export default function App() {
   return (
-    <SafeAreaView style={s.root}>
+    <SafeAreaProvider>
+    {/* 위쪽(시계·배터리)과 좌우만 비움. 아래는 탭 바가 직접 비움 */}
+    <SafeAreaView style={s.root} edges={['top', 'left', 'right']}>
       <StatusBar barStyle="dark-content" />
       <ThemeProvider theme={color}>
         <DialogProvider>
@@ -79,13 +84,14 @@ export default function App() {
         </DialogProvider>
       </ThemeProvider>
     </SafeAreaView>
+    </SafeAreaProvider>
   );
 }
 
 const s = StyleSheet.create({
   root: { flex: 1, backgroundColor: color.bg, ...(Platform.OS === 'web' ? { height: '100%' as const } : null) },
   warn: { backgroundColor: '#FFEBEE', padding: 10, alignItems: 'center' },
-  tabBar: { flexDirection: 'row', borderTopWidth: 1, borderColor: color.line, backgroundColor: '#fff', paddingBottom: Platform.OS === 'ios' ? 0 : 4 },
+  tabBar: { flexDirection: 'row', borderTopWidth: 1, borderColor: color.line, backgroundColor: '#fff' },
   tab: { flex: 1, alignItems: 'center', paddingVertical: 8 },
   tabText: { fontSize: 11, color: color.sub, marginTop: 2 },
   tabOn: { color: color.primary, fontWeight: '700' },
