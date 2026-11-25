@@ -1,0 +1,11 @@
+{
+  "name": "@daro/app-config",
+  "version": "1.0.0",
+  "private": true,
+  "description": "다로 앱 공통 빌드/배포/업데이트 설정 (Expo app config + Metro 모노레포)",
+  "main": "index.js",
+  "types": "index.d.ts",
+  "scripts": {
+    "test": "node --test tests/*.test.js"
+  }
+}
