@@ -46,6 +46,9 @@ test('isSafeStoreUrl: 스토어 주소만 허용', async () => {
   assert.equal(isSafeStoreUrl('https://evil.example.com/phish'), false);
   assert.equal(isSafeStoreUrl('https://play.google.com.evil.com/store/apps/details?id=x'), false);
   assert.equal(isSafeStoreUrl('javascript:alert(1)'), false);
+  assert.equal(isSafeStoreUrl('https://github.com/jeongdaerm-hub/Study/releases/tag/pet-android'), true);
+  assert.equal(isSafeStoreUrl('https://github.com/a/b/releases/download/x/evil.apk'), false);
+  assert.equal(isSafeStoreUrl('https://github.com.evil.io/a/b/releases/tag/x'), false);
   assert.equal(isSafeStoreUrl('market://details?id=com.daro.pet&x=<script>'), false);
   assert.equal(isSafeStoreUrl(undefined), false);
 });
