@@ -4,6 +4,7 @@ const { createAppConfig } = require('../index.js');
 
 // CI 의 APK 빌드는 APP_VARIANT=preview 로 실행되므로 테스트는 환경변수 영향 없이 시작
 delete process.env.APP_VARIANT;
+delete process.env.DARO_ADMIN_CODE_HASH;
 
 const base = { name: '테스트', slug: 'demo', version: '1.2.0', bundleId: 'com.daro.demo' };
 
@@ -71,4 +72,12 @@ test('APP_VARIANT 환경변수로 선택, 알 수 없는 값은 production', () 
     if (old === undefined) delete process.env.APP_VARIANT;
     else process.env.APP_VARIANT = old;
   }
+});
+
+test('관리자 코드 해시: 올바른 64자리 해시만 들어감', () => {
+  const h = 'a'.repeat(64);
+  assert.equal(createAppConfig({ ...base, adminCodeHash: h }).extra.adminCodeHash, h);
+  assert.equal(createAppConfig({ ...base, adminCodeHash: ' ' + h.toUpperCase() }).extra.adminCodeHash, h);
+  assert.equal(createAppConfig({ ...base, adminCodeHash: 'my-plain-password' }).extra.adminCodeHash, undefined);
+  assert.equal(createAppConfig(base).extra.adminCodeHash, undefined);
 });

@@ -32,6 +32,8 @@ env:
   # 앱 설정에 들어가는 공개 값 (비밀값 아님)
   DARO_SCAN_API_URL: ${{ vars.DARO_SCAN_API_URL }}
   EAS_PROJECT_ID_PET: ${{ vars.EAS_PROJECT_ID_PET }}
+  # 나(관리자) 영역 잠금 해시 (없으면 실제 앱의 관리자 기능 꺼짐). npm run admin:hash 로 생성
+  DARO_ADMIN_CODE_HASH: ${{ secrets.DARO_ADMIN_CODE_HASH }}
 
 jobs:
   apk:

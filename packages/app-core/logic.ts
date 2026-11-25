@@ -8,3 +8,5 @@ export * from './src/logic/recurrence.ts';
 export * from './src/update/version.ts';
 export * from './src/update/policy.ts';
 export * from './src/update/buildInfo.ts';
+export * from './src/admin/adminCode.ts';
+export * from './src/admin/sha256.ts';

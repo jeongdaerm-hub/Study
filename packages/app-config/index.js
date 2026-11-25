@@ -20,6 +20,12 @@ const DEFAULT_MANIFEST_BASE_URL =
 /** 테스트 앱 식별자 접미사 (설치된 앱 ID 로 판별 → OTA 로 바뀌지 않음) */
 const PREVIEW_SUFFIX = '.preview';
 
+/** 관리자 코드 해시: 64자리 16진수만 허용 (잘못된 값이면 관리자 기능 꺼짐) */
+function adminHashEntry(v) {
+  const h = typeof v === 'string' ? v.trim().toLowerCase() : '';
+  return /^[0-9a-f]{64}$/.test(h) ? { adminCodeHash: h } : {};
+}
+
 function createAppConfig(o) {
   const features = new Set(o.features || []);
   // 'preview' = 내 폰 확인용 테스트 앱 (실제 앱과 나란히 설치, 데이터 분리)
@@ -96,6 +102,8 @@ function createAppConfig(o) {
       versionManifestUrl: o.versionManifestUrl || `${manifestBase}/${o.slug}.json`,
       // 사진 인식 등 앱 전용 API 주소 (비밀값 아님. API 키는 서버에만)
       ...(o.apiUrl ? { apiUrl: o.apiUrl } : {}),
+      // 나(관리자) 영역 잠금: 코드 '원문'이 아닌 해시만. GitHub Secret DARO_ADMIN_CODE_HASH
+      ...adminHashEntry(o.adminCodeHash ?? process.env.DARO_ADMIN_CODE_HASH),
       ...(o.easProjectId ? { eas: { projectId: o.easProjectId } } : {}),
     },
   };

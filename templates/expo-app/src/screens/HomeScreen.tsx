@@ -1,20 +1,22 @@
 import React from 'react';
-import { StyleSheet, Text, View } from 'react-native';
-import { useAppUpdate } from '@daro/app-core';
+import { ScrollView, StyleSheet, Text, View } from 'react-native';
+import { AppInfoAndAdmin } from '@daro/app-core';
 import { color } from '../theme.ts';
 
 export function HomeScreen() {
-  const { currentVersion } = useAppUpdate();
   return (
-    <View style={s.wrap}>
-      <Text style={s.title}>__APP_NAME__</Text>
-      <Text style={s.sub}>v{currentVersion}</Text>
-    </View>
+    <ScrollView contentContainerStyle={s.wrap}>
+      <View style={s.hero}>
+        <Text style={s.title}>__APP_NAME__</Text>
+      </View>
+      {/* 앱 정보 + 나(관리자): 버전을 7번 누르면 '배포 전 버전 확인하기' (설정 화면으로 옮겨 쓰기) */}
+      <AppInfoAndAdmin />
+    </ScrollView>
   );
 }
 
 const s = StyleSheet.create({
-  wrap: { flex: 1, alignItems: 'center', justifyContent: 'center' },
+  wrap: { padding: 16, flexGrow: 1 },
+  hero: { alignItems: 'center', paddingVertical: 48 },
   title: { fontSize: 24, fontWeight: '800', color: color.text },
-  sub: { marginTop: 8, color: color.sub },
 });

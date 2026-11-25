@@ -9,16 +9,20 @@ import { WeightScreen } from './src/screens/WeightScreen.tsx';
 import { LogScreen } from './src/screens/LogScreen.tsx';
 import { ScheduleScreen } from './src/screens/ScheduleScreen.tsx';
 import { PetForm } from './src/screens/PetForm.tsx';
+import { SettingsScreen } from './src/screens/SettingsScreen.tsx';
 import { color } from './src/theme.ts';
 
-type Tab = 'home' | 'health' | 'weight' | 'log' | 'schedule';
+type Tab = 'home' | 'health' | 'weight' | 'log' | 'schedule' | 'settings';
 const TABS: { key: Tab; label: string; icon: string }[] = [
   { key: 'home', label: '홈', icon: '🏠' },
   { key: 'health', label: '건강수첩', icon: '🩺' },
   { key: 'weight', label: '체중', icon: '⚖️' },
   { key: 'log', label: '생활일지', icon: '📔' },
   { key: 'schedule', label: '일정', icon: '🔔' },
+  { key: 'settings', label: '설정', icon: '⚙️' },
 ];
+// 반려동물을 등록하기 전에는 홈·설정만
+const FIRST_TABS = TABS.filter((t) => t.key === 'home' || t.key === 'settings');
 
 function Main() {
   const { ready, db, saveError } = useAppData();
@@ -28,9 +32,12 @@ function Main() {
   const [addPet, setAddPet] = useState(false);
   const hasPet = db.pets.length > 0;
   const onAddPet = () => setAddPet(true);
+  // 등록 전에는 설정 외 탭은 홈으로 보임
+  const current: Tab = hasPet || tab === 'settings' ? tab : 'home';
 
   let body: React.ReactNode;
   if (!ready) body = <ActivityIndicator style={{ marginTop: 48 }} color={color.primary} />;
+  else if (tab === 'settings') body = <SettingsScreen />;
   else if (!hasPet || tab === 'home') body = <HomeScreen goTo={setTab} />;
   else if (tab === 'health') body = <HealthScreen onAddPet={onAddPet} />;
   else if (tab === 'weight') body = <WeightScreen onAddPet={onAddPet} />;
@@ -48,19 +55,19 @@ function Main() {
         </View>
       )}
       <View style={{ flex: 1 }}>{body}</View>
-      {hasPet && (
+      {ready && (
         <View style={[s.tabBar, { paddingBottom: Math.max(insets.bottom, Platform.OS === 'ios' ? 0 : 4) }]} accessibilityRole="tablist">
-          {TABS.map((t) => (
+          {(hasPet ? TABS : FIRST_TABS).map((t) => (
             <Pressable
               key={t.key}
               style={s.tab}
               onPress={() => setTab(t.key)}
               accessibilityRole="tab"
-              accessibilityState={{ selected: tab === t.key }}
+              accessibilityState={{ selected: current === t.key }}
               accessibilityLabel={t.label}
             >
-              <Text style={{ fontSize: 20, opacity: tab === t.key ? 1 : 0.55 }}>{t.icon}</Text>
-              <Text style={[s.tabText, tab === t.key && s.tabOn]}>{t.label}</Text>
+              <Text style={{ fontSize: 20, opacity: current === t.key ? 1 : 0.55 }}>{t.icon}</Text>
+              <Text style={[s.tabText, current === t.key && s.tabOn]}>{t.label}</Text>
             </Pressable>
           ))}
         </View>

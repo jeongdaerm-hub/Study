@@ -13,6 +13,7 @@
     "validate:manifests": "node --experimental-strip-types scripts/validate-manifests.mjs",
     "check": "npm test && npm run typecheck && npm run validate:manifests && node scripts/security-scan.mjs",
     "new-app": "node scripts/create-app.mjs",
+    "admin:hash": "node scripts/admin-code-hash.mjs",
     "release:manifest": "node --experimental-strip-types scripts/release-manifest.mjs",
     "security": "node scripts/security-scan.mjs && npm audit --audit-level=moderate"
   },

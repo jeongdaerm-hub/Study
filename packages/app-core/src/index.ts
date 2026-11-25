@@ -1,7 +1,8 @@
 /**
  * @daro/app-core — 모든 다로 앱이 공통으로 쓰는 모듈
  *
- *  update/        인앱 업데이트 (OTA + 스토어 버전 체크 + 업데이트 버튼)
+ *  update/        인앱 업데이트 (OTA + 스토어 버전 체크 + 업데이트 버튼 + 채널 전환)
+ *  admin/         나(관리자) 영역: 배포 전 버전 확인하기
  *  notifications/ 로컬 알림 예약/취소 (반복 일정 지원)
  *  storage/       기기 저장소, 사진 선택·보관
  *  logic/         날짜, 반복 일정 계산 (순수 함수, 단위 테스트 대상)
@@ -25,6 +26,20 @@ export {
   type VersionManifest,
 } from './update/policy.ts';
 export { compareVersions } from './update/version.ts';
+export {
+  switchChannel,
+  currentChannel,
+  buildChannel,
+  canSwitchChannel,
+  channelName,
+  type Channel,
+  type SwitchResult,
+} from './update/channelSwitch.ts';
+
+// admin (나만 보는 관리자 영역)
+export { AppInfoAndAdmin } from './admin/AdminPanel.tsx';
+export { useAdmin, adminMode, type AdminMode } from './admin/useAdmin.ts';
+export { hashAdminCode, verifyAdminCode } from './admin/adminCode.ts';
 
 // notifications
 export {
