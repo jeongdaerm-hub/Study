@@ -1,0 +1,13 @@
+{
+  "name": "@daro/health-scan",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "건강수첩 사진 인식 공통 규칙: 결과 형식, AI 지시문, 결과 검증, 가져오기 계획 (앱·서버 공용, 의존성 없음)",
+  "main": "src/index.ts",
+  "types": "src/index.ts",
+  "scripts": {
+    "test": "node --experimental-strip-types --test tests/*.test.ts",
+    "typecheck": "tsc --noEmit"
+  }
+}

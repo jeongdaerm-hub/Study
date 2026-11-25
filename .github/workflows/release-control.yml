@@ -1,0 +1,68 @@
+# 배포 조절: 점진 배포 비율 올리기 / 긴급 되돌리기 (모두 승인 필요)
+name: Release Control
+
+on:
+  workflow_dispatch:
+    inputs:
+      app:
+        description: 'apps/ 아래 폴더명'
+        default: pet
+        required: true
+      action:
+        description: '할 일'
+        type: choice
+        options:
+          - rollout       # 점진 배포 비율 올리기
+          - rollback      # 사용자 앱을 설치 당시 기본 버전으로 되돌리기
+      group:
+        description: 'rollout: 업데이트 그룹 ID (Release 실행 요약에 있음)'
+        required: false
+      percentage:
+        description: 'rollout: 새 비율 (%)'
+        type: choice
+        options: ['50', '100']
+        default: '100'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: release-${{ inputs.app }}
+  cancel-in-progress: false
+
+env:
+  APP: ${{ inputs.app }}
+  EAS_PROJECT_ID_PET: ${{ vars.EAS_PROJECT_ID_PET }}
+
+jobs:
+  control:
+    runs-on: ubuntu-latest
+    environment: production
+    steps:
+      - uses: actions/checkout@v7
+      - run: test -d "apps/$APP" || { echo "::error::apps/$APP 없음"; exit 1; }
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci --ignore-scripts
+      - uses: expo/expo-github-action@v8
+        with:
+          eas-version: latest
+          token: ${{ secrets.EXPO_TOKEN }}
+      - name: 점진 배포 비율 올리기
+        if: inputs.action == 'rollout'
+        working-directory: apps/${{ env.APP }}
+        env:
+          GROUP: ${{ inputs.group }}
+          PCT: ${{ inputs.percentage }}
+        run: |
+          [[ "$GROUP" =~ ^[0-9a-fA-F-]{8,64}$ ]] || { echo "::error::업데이트 그룹 ID 를 입력하세요"; exit 1; }
+          eas update:edit "$GROUP" --rollout-percentage "$PCT" --non-interactive
+          echo "### 배포 비율 → ${PCT}%" >> "$GITHUB_STEP_SUMMARY"
+      - name: 긴급 되돌리기
+        if: inputs.action == 'rollback'
+        working-directory: apps/${{ env.APP }}
+        run: |
+          eas update:roll-back-to-embedded --channel production --message "rollback" --non-interactive
+          echo "### 되돌렸어요: 사용자 앱이 다음 실행 때 설치 당시 기본 버전으로 돌아가요" >> "$GITHUB_STEP_SUMMARY"
