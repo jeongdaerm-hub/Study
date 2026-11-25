@@ -46,7 +46,7 @@ jobs:
           node-version: 22
           cache: npm
       - run: npm ci --ignore-scripts
-      - uses: expo/expo-github-action@v8
+      - uses: expo/expo-github-action@v9
         with:
           eas-version: latest
           token: ${{ secrets.EXPO_TOKEN }}
