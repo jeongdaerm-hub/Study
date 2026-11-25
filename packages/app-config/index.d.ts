@@ -17,6 +17,8 @@ export interface DaroAppOptions {
   manifestBaseUrl?: string;
   /** 앱 전용 API 서버 주소 (https). API 키는 넣지 말 것 */
   apiUrl?: string;
+  /** 'preview' = 내 폰 확인용 테스트 앱 (기본: 환경변수 APP_VARIANT, 없으면 production) */
+  variant?: 'production' | 'preview';
   versionManifestUrl?: string;
   plugins?: unknown[];
   extra?: Record<string, unknown>;
@@ -27,3 +29,4 @@ export type ExpoConfig = Record<string, any>;
 export function createAppConfig(o: DaroAppOptions): ExpoConfig;
 export function createMetroConfig(projectRoot: string): any;
 export const DEFAULT_MANIFEST_BASE_URL: string;
+export const PREVIEW_SUFFIX: string;

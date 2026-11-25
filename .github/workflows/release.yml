@@ -1,0 +1,120 @@
+# 단계별 배포 (OTA): 내 폰에서 먼저 확인 → 승인 → 사용자에게 배포
+#
+#  ① preview    : 테스트 채널에 업데이트 게시 → 내 폰의 '다로펫 테스트' 앱이 받음
+#  ② production : GitHub 에서 [승인] 을 눌러야 시작 (Settings → Environments → production → Required reviewers)
+#                 ①에서 확인한 '바로 그 업데이트'를 그대로 사용자 채널로 승격 (다시 빌드하지 않음)
+#
+# 필요: Secrets EXPO_TOKEN, Variables EAS_PROJECT_ID_<앱>
+# 네이티브 변경(권한·SDK·네이티브 모듈)은 OTA 불가 → Store Build 워크플로 사용
+name: Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      app:
+        description: 'apps/ 아래 폴더명'
+        default: pet
+        required: true
+      message:
+        description: '변경 내용 (사용자에게 보이지 않음, 기록용)'
+        required: true
+      rollout:
+        description: '승인 후 처음 받을 사용자 비율 (%)'
+        type: choice
+        options: ['100', '50', '10']
+        default: '100'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: release-${{ inputs.app }}
+  cancel-in-progress: false
+
+env:
+  APP: ${{ inputs.app }}
+  DARO_SCAN_API_URL: ${{ vars.DARO_SCAN_API_URL }}
+  EAS_PROJECT_ID_PET: ${{ vars.EAS_PROJECT_ID_PET }}
+
+jobs:
+  preview:
+    name: ① 테스트 채널 게시
+    runs-on: ubuntu-latest
+    outputs:
+      group: ${{ steps.publish.outputs.group }}
+    steps:
+      - uses: actions/checkout@v7
+      - name: 준비물 확인
+        env:
+          HAS_TOKEN: ${{ secrets.EXPO_TOKEN != '' }}
+        run: |
+          test -d "apps/$APP" || { echo "::error::apps/$APP 없음"; exit 1; }
+          [ "$HAS_TOKEN" = "true" ] || { echo "::error::Secrets 에 EXPO_TOKEN 이 없어요 (expo.dev → Access tokens)"; exit 1; }
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci --ignore-scripts
+      - run: npm run check
+      - uses: expo/expo-github-action@v8
+        with:
+          eas-version: latest
+          token: ${{ secrets.EXPO_TOKEN }}
+      - name: preview 채널에 게시
+        id: publish
+        working-directory: apps/${{ env.APP }}
+        env:
+          MESSAGE: ${{ inputs.message }}
+        run: |
+          eas update --channel preview --message "$MESSAGE" --non-interactive --json > "$RUNNER_TEMP/update.json"
+          GROUP=$(jq -r '.[0].group // empty' "$RUNNER_TEMP/update.json")
+          [ -n "$GROUP" ] || { echo "::error::업데이트 그룹 ID 를 찾지 못했어요"; cat "$RUNNER_TEMP/update.json"; exit 1; }
+          echo "group=$GROUP" >> "$GITHUB_OUTPUT"
+          {
+            echo "### ① 테스트 채널에 올렸어요"
+            echo "| 항목 | 값 |"
+            echo "|---|---|"
+            echo "| 업데이트 | \`${GROUP:0:8}\` |"
+            echo "| 변경 내용 | $MESSAGE |"
+            echo
+            echo "**다음 할 일**"
+            echo "1. 폰에서 **다로펫 테스트** 앱을 완전히 껐다가 다시 열기 (두 번 열면 확실)"
+            echo "2. 화면 맨 위 보라색 띠의 \`업데이트 #${GROUP:0:6}\` 확인"
+            echo "3. RELEASE.md 의 확인 목록대로 점검"
+            echo "4. 문제 없으면 이 화면의 **Review deployments → production → Approve**"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+  production:
+    name: ② 사용자에게 배포 (승인 후)
+    needs: preview
+    runs-on: ubuntu-latest
+    environment: production
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci --ignore-scripts
+      - uses: expo/expo-github-action@v8
+        with:
+          eas-version: latest
+          token: ${{ secrets.EXPO_TOKEN }}
+      - name: 확인한 업데이트를 production 채널로 승격
+        working-directory: apps/${{ env.APP }}
+        env:
+          GROUP: ${{ needs.preview.outputs.group }}
+          MESSAGE: ${{ inputs.message }}
+          ROLLOUT: ${{ inputs.rollout }}
+        run: |
+          ARGS=(--group "$GROUP" --destination-channel production --message "$MESSAGE" --non-interactive)
+          if [ "$ROLLOUT" != "100" ]; then ARGS+=(--rollout-percentage "$ROLLOUT"); fi
+          eas update:republish "${ARGS[@]}"
+          {
+            echo "### ② 사용자에게 배포했어요 (${ROLLOUT}%)"
+            echo "- 사용자 폰은 백그라운드에서 조용히 받아 두었다가 **다음에 앱을 열 때** 적용돼요 (사용 중 끊김 없음)"
+            if [ "$ROLLOUT" != "100" ]; then
+              echo "- 일부 사용자만 받는 중 → 괜찮으면 **Release Control → rollout** 으로 비율을 올리세요 (그룹 \`$GROUP\`)"
+            fi
+            echo "- 문제가 생기면 **Release Control → rollback**"
+          } >> "$GITHUB_STEP_SUMMARY"

@@ -29,6 +29,8 @@ env:
 jobs:
   build:
     runs-on: ubuntu-latest
+    # production 빌드·제출은 승인 후에만 (preview 는 바로)
+    environment: ${{ inputs.profile == 'production' && 'production' || 'preview' }}
     steps:
       - uses: actions/checkout@v7
       - name: Validate app

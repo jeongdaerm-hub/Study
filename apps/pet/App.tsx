@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { ActivityIndicator, Platform, Pressable, SafeAreaView, StatusBar, StyleSheet, Text, View } from 'react-native';
-import { DialogProvider, ThemeProvider, UpdateGate } from '@daro/app-core';
+import { DialogProvider, TestBuildRibbon, ThemeProvider, UpdateGate } from '@daro/app-core';
 import { AppDataProvider, useAppData } from './src/state/AppData.tsx';
 import { HomeScreen } from './src/screens/HomeScreen.tsx';
 import { HealthScreen } from './src/screens/HealthScreen.tsx';
@@ -36,6 +36,8 @@ function Main() {
 
   return (
     <View style={{ flex: 1 }}>
+      {/* 테스트 앱에서만 보임: 지금 확인 중인 업데이트 */}
+      <TestBuildRibbon />
       <UpdateGate icon="🐾" forceMessage="안전한 반려동물 건강 기록 관리를 위해 최신 버전으로 업데이트가 필요해요." />
       {saveError && (
         <View style={s.warn} accessibilityRole="alert">

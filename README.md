@@ -49,15 +49,19 @@ npm run start -w @daro/<slug>
 | 매니페스트 | `manifests/<slug>.json` |
 | 테스트 | `tests/` + CI 자동 포함 |
 
-## 4. 개발 → 배포 → 업데이트 흐름
+## 4. 개발 → 확인 → 배포 흐름 (자세히: [RELEASE.md](RELEASE.md))
 
-| 단계 | 언제 | 명령 / 방법 | 사용자에게 보이는 것 |
+| 단계 | 언제 | 방법 | 결과 |
 |---|---|---|---|
-| ① 검증 | 항상 (PR마다 자동) | `npm run check` / CI | — |
-| ② OTA 배포 | JS·화면·문구만 바뀜 | Actions → **OTA Update** 또는 `npm run update:production -w @daro/<slug> -- "메시지"` | 상단 배너 [업데이트] → 즉시 적용 |
-| ③ 스토어 빌드 | 네이티브 변경 (권한, SDK, 새 네이티브 모듈) | `app.config.js` version 올림 → Actions → **Store Build** | — |
-| ④ 출시 공지 | ③ 스토어 배포 **완료 후** | `npm run release:manifest -- <slug> 1.1.0 --note "변경 내용"` → main 머지 | 배너 [업데이트] → 스토어 이동 |
-| ⑤ 구버전 차단 | 보안·데이터 호환 문제 시 | `release:manifest -- <slug> 1.1.0 --min 1.1.0` | 닫을 수 없는 필수 업데이트 창 |
+| ① 검증 | PR 마다 자동 | CI (`npm run check`, 보안, APK) | 테스트 앱 APK 갱신 |
+| ② 내 폰 확인 | 화면·로직 변경 | Actions → **Release** 실행 | 내 폰 **다로펫 테스트** 앱만 먼저 받음 |
+| ③ 승인 | 확인 끝나면 | Release 실행 화면 → **Approve** | 확인한 그 업데이트가 사용자에게 (선택: 10%·50% 점진 배포) |
+| ④ 조절·되돌리기 | 필요할 때 | Actions → **Release Control** | 비율 올리기 / 긴급 되돌리기 |
+| 스토어 빌드 | 네이티브 변경 | Actions → **Store Build** (production 은 승인 필요) | — |
+| 출시 공지 | 스토어 배포 후 | `npm run release:manifest -- <slug> <ver>` | 배너 [업데이트] → 스토어 |
+
+- 사용자 앱: 업데이트를 **백그라운드에서 받아 두었다가 다음에 앱을 열 때 적용** → 사용 중 끊김 없음
+- 테스트 앱과 실제 앱은 앱 ID 가 달라 **나란히 설치**, 데이터도 분리
 
 ### OTA vs 스토어 판단 기준
 

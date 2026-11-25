@@ -17,8 +17,18 @@ const DEFAULT_MANIFEST_BASE_URL =
  * @param {import('./index').DaroAppOptions} o
  * @returns {import('./index').ExpoConfig}
  */
+/** 테스트 앱 식별자 접미사 (설치된 앱 ID 로 판별 → OTA 로 바뀌지 않음) */
+const PREVIEW_SUFFIX = '.preview';
+
 function createAppConfig(o) {
   const features = new Set(o.features || []);
+  // 'preview' = 내 폰 확인용 테스트 앱 (실제 앱과 나란히 설치, 데이터 분리)
+  const variant = (o.variant || process.env.APP_VARIANT || 'production') === 'preview' ? 'preview' : 'production';
+  const preview = variant === 'preview';
+  const appName = preview ? `${o.name} 테스트` : o.name;
+  const bundleId = preview ? `${o.bundleId}${PREVIEW_SUFFIX}` : o.bundleId;
+  // OTA 채널: 테스트 앱은 preview, 실제 앱은 production 업데이트만 받음
+  const channel = preview ? 'preview' : 'production';
   /** @type {any[]} */
   const plugins = [];
   /** @type {string[]} */
@@ -47,7 +57,7 @@ function createAppConfig(o) {
   const manifestBase = (o.manifestBaseUrl || DEFAULT_MANIFEST_BASE_URL).replace(/\/$/, '');
 
   return {
-    name: o.name,
+    name: appName,
     slug: o.slug,
     version: o.version,
     orientation: 'portrait',
@@ -56,14 +66,16 @@ function createAppConfig(o) {
     updates: {
       enabled: true,
       checkAutomatically: 'NEVER', // 확인은 @daro/app-core UpdateGate 가 담당
+      // 실행을 기다리게 하지 않음: 새 업데이트는 내려받아 두었다가 다음 실행 때 적용
       fallbackToCacheTimeout: 0,
+      requestHeaders: { 'expo-channel-name': channel },
       ...(o.easProjectId ? { url: `https://u.expo.dev/${o.easProjectId}` } : {}),
     },
-    ios: { bundleIdentifier: o.bundleId, supportsTablet: false },
+    ios: { bundleIdentifier: bundleId, supportsTablet: false },
     // 웹 미리보기 (기획·QA 확인용 정적 빌드)
-    web: { bundler: 'metro', output: 'single', name: o.name, themeColor: o.brandColor },
+    web: { bundler: 'metro', output: 'single', name: appName, themeColor: o.brandColor },
     android: {
-      package: o.bundleId,
+      package: bundleId,
       permissions: androidPermissions,
       // 보안: 불필요한 권한 차단 + 앱 데이터 클라우드 자동 백업 해제(기기 밖 유출 방지)
       blockedPermissions: [
@@ -80,6 +92,7 @@ function createAppConfig(o) {
     plugins,
     extra: {
       ...(o.extra || {}),
+      variant,
       versionManifestUrl: o.versionManifestUrl || `${manifestBase}/${o.slug}.json`,
       // 사진 인식 등 앱 전용 API 주소 (비밀값 아님. API 키는 서버에만)
       ...(o.apiUrl ? { apiUrl: o.apiUrl } : {}),
@@ -105,4 +118,4 @@ function createMetroConfig(projectRoot) {
   return config;
 }
 
-module.exports = { createAppConfig, createMetroConfig, DEFAULT_MANIFEST_BASE_URL };
+module.exports = { createAppConfig, createMetroConfig, DEFAULT_MANIFEST_BASE_URL, PREVIEW_SUFFIX };

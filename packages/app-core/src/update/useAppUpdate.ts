@@ -13,16 +13,17 @@ import {
 } from './policy.ts';
 
 /**
- * 인앱 업데이트 2-트랙 구조
- *  1) OTA(JS 번들) 업데이트 : expo-updates → 스토어 심사 없이 앱 안에서 즉시 다운로드 + 재시작
+ * 인앱 업데이트 2-트랙 구조 — 사용 중 끊김 없이
+ *  1) OTA(JS 번들) 업데이트 : 백그라운드에서 조용히 내려받기 → 다음에 앱을 열 때 자동 적용
+ *     (원하면 배너의 [지금 적용] 으로 바로 적용. 사용 중 강제 재시작 없음)
  *  2) 스토어(네이티브) 업데이트 : version.json 비교 → optional(버튼) / force(차단 모달)
  */
 export type UpdateStatus = 'idle' | 'checking' | 'available' | 'downloading' | 'ready' | 'error';
 
 export interface AppUpdateState {
   status: UpdateStatus;
-  /** OTA 업데이트 존재 여부 */
-  otaAvailable: boolean;
+  /** 새 OTA 업데이트를 내려받아 둠 → 다음 실행 때 자동 적용 */
+  otaReady: boolean;
   /** 스토어 업데이트 단계 */
   storeLevel: StoreUpdateLevel;
   manifest: VersionManifest | null;
@@ -41,13 +42,14 @@ export function useAppUpdate() {
   const currentVersion = Application.nativeApplicationVersion ?? Constants.expoConfig?.version ?? '0.0.0';
   const [state, setState] = useState<AppUpdateState>({
     status: 'idle',
-    otaAvailable: false,
+    otaReady: false,
     storeLevel: 'none',
     manifest: null,
     currentVersion,
     error: null,
   });
   const lastCheck = useRef(0);
+  const otaReadyRef = useRef(false);
 
   const check = useCallback(async () => {
     lastCheck.current = Date.now();
@@ -56,13 +58,15 @@ export function useAppUpdate() {
       // 웹은 스토어/OTA 개념이 없으므로 확인 생략
       const [manifest, ota] = Platform.OS === 'web' ? [null, false] : await Promise.all([fetchManifest(), checkOta()]);
       const storeLevel = manifest ? decideStoreUpdate(currentVersion, manifest) : 'none';
-      setState((s) => ({
-        ...s,
-        manifest,
-        storeLevel,
-        otaAvailable: ota,
-        status: ota || storeLevel !== 'none' ? 'available' : 'idle',
-      }));
+      setState((s) => ({ ...s, manifest, storeLevel, status: storeLevel !== 'none' ? 'available' : 'idle' }));
+      // 새 OTA 가 있으면 화면을 막지 않고 조용히 내려받기 (실패해도 다음 확인 때 다시 시도)
+      if (ota && !otaReadyRef.current) {
+        const ready = await downloadOta();
+        if (ready) {
+          otaReadyRef.current = true;
+          setState((s) => ({ ...s, otaReady: true, status: s.storeLevel !== 'none' ? s.status : 'ready' }));
+        }
+      }
     } catch (e) {
       setState((s) => ({ ...s, status: 'error', error: toMessage(e) }));
     }
@@ -77,20 +81,14 @@ export function useAppUpdate() {
       if (isSafeStoreUrl(url)) await Linking.openURL(url);
       return;
     }
-    if (!state.otaAvailable) return;
+    // 이미 내려받은 업데이트를 지금 적용 (사용자가 직접 누른 경우에만)
+    if (!state.otaReady) return;
     try {
-      setState((s) => ({ ...s, status: 'downloading' }));
-      const result = await Updates.fetchUpdateAsync();
-      if (result.isNew) {
-        setState((s) => ({ ...s, status: 'ready' }));
-        await Updates.reloadAsync(); // 새 번들로 앱 재시작
-      } else {
-        setState((s) => ({ ...s, status: 'idle', otaAvailable: false }));
-      }
+      await Updates.reloadAsync();
     } catch (e) {
       setState((s) => ({ ...s, status: 'error', error: toMessage(e) }));
     }
-  }, [state.storeLevel, state.manifest, state.otaAvailable]);
+  }, [state.storeLevel, state.manifest, state.otaReady]);
 
   // 앱 시작 시 + 백그라운드→포그라운드 복귀 시 자동 확인
   useEffect(() => {
@@ -126,6 +124,16 @@ async function checkOta(): Promise<boolean> {
   try {
     const r = await Updates.checkForUpdateAsync();
     return r.isAvailable;
+  } catch {
+    return false;
+  }
+}
+
+/** 백그라운드 다운로드. 적용은 다음 실행 때 expo-updates 가 자동으로 함 */
+async function downloadOta(): Promise<boolean> {
+  try {
+    const r = await Updates.fetchUpdateAsync();
+    return r.isNew;
   } catch {
     return false;
   }

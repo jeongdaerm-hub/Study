@@ -2,6 +2,9 @@ const { test } = require('node:test');
 const assert = require('node:assert/strict');
 const { createAppConfig } = require('../index.js');
 
+// CI 의 APK 빌드는 APP_VARIANT=preview 로 실행되므로 테스트는 환경변수 영향 없이 시작
+delete process.env.APP_VARIANT;
+
 const base = { name: '테스트', slug: 'demo', version: '1.2.0', bundleId: 'com.daro.demo' };
 
 test('공통 업데이트 구조가 항상 들어감', () => {
@@ -38,4 +41,34 @@ test('불필요·위험 안드로이드 권한 차단', () => {
 test('카메라 기능을 켜면 CAMERA 권한 선언', () => {
   assert.ok(createAppConfig({ ...base, features: ['camera'] }).android.permissions.includes('android.permission.CAMERA'));
   assert.ok(!createAppConfig({ ...base, features: ['photos'] }).android.permissions.includes('android.permission.CAMERA'));
+});
+
+test('테스트 앱(preview): 이름·앱 ID·채널 분리, 실제 앱은 그대로', () => {
+  const prod = createAppConfig(base);
+  assert.equal(prod.name, '테스트');
+  assert.equal(prod.android.package, 'com.daro.demo');
+  assert.equal(prod.updates.requestHeaders['expo-channel-name'], 'production');
+  assert.equal(prod.extra.variant, 'production');
+
+  const pre = createAppConfig({ ...base, variant: 'preview' });
+  assert.equal(pre.name, '테스트 테스트');
+  assert.equal(pre.android.package, 'com.daro.demo.preview');
+  assert.equal(pre.ios.bundleIdentifier, 'com.daro.demo.preview');
+  assert.equal(pre.updates.requestHeaders['expo-channel-name'], 'preview');
+  assert.equal(pre.extra.variant, 'preview');
+  // 버전 정책은 같아야 같은 업데이트를 두 채널에 그대로 쓸 수 있음
+  assert.deepEqual(pre.runtimeVersion, prod.runtimeVersion);
+});
+
+test('APP_VARIANT 환경변수로 선택, 알 수 없는 값은 production', () => {
+  const old = process.env.APP_VARIANT;
+  try {
+    process.env.APP_VARIANT = 'preview';
+    assert.equal(createAppConfig(base).android.package, 'com.daro.demo.preview');
+    process.env.APP_VARIANT = 'hacker';
+    assert.equal(createAppConfig(base).android.package, 'com.daro.demo');
+  } finally {
+    if (old === undefined) delete process.env.APP_VARIANT;
+    else process.env.APP_VARIANT = old;
+  }
 });

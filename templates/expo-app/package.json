@@ -9,8 +9,7 @@
     "ios": "expo run:ios",
     "test": "node --experimental-strip-types --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --test tests/*.test.ts",
     "typecheck": "tsc --noEmit",
-    "update:preview": "eas update --channel preview --message",
-    "update:production": "eas update --channel production --message"
+    "update:preview": "eas update --channel preview --message"
   },
   "dependencies": {}
 }

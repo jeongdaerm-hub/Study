@@ -83,3 +83,16 @@ test('isAllowedApiUrl: HTTPS 만, 개발 시 localhost 예외', async () => {
   assert.equal(isAllowedApiUrl('http://localhost:8787', true), true);
   assert.equal(isAllowedApiUrl('javascript:alert(1)', true), false);
 });
+
+test('테스트 앱 판별: 설치된 앱 ID 기준', async () => {
+  const { isPreviewAppId, describeBuild } = await import('../src/update/buildInfo.ts');
+  assert.equal(isPreviewAppId('com.daro.pet.preview'), true);
+  assert.equal(isPreviewAppId('com.daro.pet'), false);
+  assert.equal(isPreviewAppId('com.daro.previewer'), false);
+  assert.equal(isPreviewAppId(null), false);
+  assert.equal(
+    describeBuild({ preview: true, version: '1.0.0', channel: 'preview', updateId: '3f2a1c9d-0000-4000-8000-000000000000', updateCreatedAt: new Date(2026, 10, 25, 14, 2) }),
+    'v1.0.0 · 업데이트 #3f2a1c (11/25 14:02)',
+  );
+  assert.equal(describeBuild({ preview: true, version: '1.0.0', channel: 'preview', updateId: null, updateCreatedAt: null }), 'v1.0.0 · 기본 버전');
+});

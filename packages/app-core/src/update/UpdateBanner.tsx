@@ -9,15 +9,20 @@ interface Props {
   notes?: string[];
   onUpdate: () => void;
   onLater: () => void;
+  /** 버튼 문구 (기본: 업데이트) */
+  actionLabel?: string;
+  /** 제목 아래 한 줄 안내 */
+  hint?: string;
 }
 
 /** 새 버전이 있을 때만 노출되는 상단 배너 + [업데이트] 버튼 */
-export function UpdateBanner({ status, title, notes, onUpdate, onLater }: Props) {
+export function UpdateBanner({ status, title, notes, onUpdate, onLater, actionLabel = '업데이트', hint }: Props) {
   const t = useTheme();
-  const busy = status === 'downloading' || status === 'ready';
+  const busy = status === 'downloading';
   return (
     <View style={[styles.wrap, { backgroundColor: t.primarySoft, borderColor: t.primary }]} accessibilityRole="alert">
       <Text style={[styles.title, { color: t.primaryText }]}>{title}</Text>
+      {!!hint && <Text style={[styles.note, { color: t.primaryText }]}>{hint}</Text>}
       {notes?.slice(0, 3).map((n) => (
         <Text key={n} style={[styles.note, { color: t.primaryText }]}>• {n}</Text>
       ))}
@@ -29,9 +34,9 @@ export function UpdateBanner({ status, title, notes, onUpdate, onLater }: Props)
           onPress={onUpdate}
           disabled={busy}
           style={[styles.btn, { backgroundColor: t.primary }, busy && styles.disabled]}
-          accessibilityLabel="업데이트"
+          accessibilityLabel={actionLabel}
         >
-          {busy ? <ActivityIndicator color="#fff" /> : <Text style={styles.updateText}>업데이트</Text>}
+          {busy ? <ActivityIndicator color="#fff" /> : <Text style={styles.updateText}>{actionLabel}</Text>}
         </Pressable>
       </View>
       {status === 'error' && <Text style={[styles.error, { color: t.danger }]}>업데이트에 실패했어요. 다시 시도해 주세요.</Text>}
