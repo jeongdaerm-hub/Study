@@ -31,3 +31,9 @@ export function describeBuild(b: BuildInfo): string {
   }
   return parts.join(' · ');
 }
+
+/** 0~1 → 0~100 정수 (값이 없거나 이상하면 null → '준비 중') */
+export function toPercent(p: number | undefined | null): number | null {
+  if (typeof p !== 'number' || !Number.isFinite(p)) return null;
+  return Math.round(Math.min(1, Math.max(0, p)) * 100);
+}

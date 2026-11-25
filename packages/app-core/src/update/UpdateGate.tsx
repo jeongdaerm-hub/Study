@@ -3,11 +3,13 @@ import { useAppUpdate } from './useAppUpdate.ts';
 import { shouldShowBanner } from './policy.ts';
 import { UpdateBanner } from './UpdateBanner.tsx';
 import { ForceUpdateModal } from './ForceUpdateModal.tsx';
+import { InstallingScreen } from './InstallingScreen.tsx';
 
 /**
  * 앱 최상단에 한 번만 두면 되는 업데이트 컨트롤러.
  * - 업데이트가 없으면 아무것도 렌더링하지 않음
- * - OTA: 조용히 내려받아 두고 다음 실행 때 적용 (원하면 [지금 적용])
+ * - OTA: 앱을 켤 때 있으면 '업데이트 중 N%' 후 바로 새 버전 실행
+ *        사용 중에 생기면 조용히 받아 두고 다음 실행 때 적용 (원하면 [지금 적용])
  * - 스토어 새 버전: [업데이트] 버튼 배너, 필수 버전이면 차단 모달
  */
 export interface UpdateGateProps {
@@ -15,11 +17,16 @@ export interface UpdateGateProps {
   forceMessage?: string;
   /** 배너 제목 앞 아이콘 (예: 🐾) */
   icon?: string;
+  /** 앱을 켤 때 업데이트가 있으면 '업데이트 중 N%' 후 바로 적용 (기본 true) */
+  installOnLaunch?: boolean;
 }
 
-export function UpdateGate({ forceMessage, icon = '✨' }: UpdateGateProps = {}) {
-  const u = useAppUpdate();
+export function UpdateGate({ forceMessage, icon = '✨', installOnLaunch = true }: UpdateGateProps = {}) {
+  const u = useAppUpdate({ installOnLaunch });
   const [dismissed, setDismissed] = useState<string | null>(null);
+
+  // ⓪ 앱을 켤 때 새 업데이트: '업데이트 중 N%' → 자동으로 새 버전 실행
+  if (u.installing) return <InstallingScreen icon={icon} />;
 
   if (u.storeLevel === 'force') {
     return <ForceUpdateModal visible message={forceMessage} notes={u.manifest?.releaseNotes} onUpdate={u.applyUpdate} />;

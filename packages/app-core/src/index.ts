@@ -11,11 +11,12 @@
 
 // update
 export { UpdateGate, type UpdateGateProps } from './update/UpdateGate.tsx';
+export { InstallingScreen, toPercent } from './update/InstallingScreen.tsx';
 export { TestBuildRibbon, getBuildInfo } from './update/TestBuildRibbon.tsx';
 export { describeBuild, isPreviewAppId, type BuildInfo } from './update/buildInfo.ts';
 export { UpdateBanner } from './update/UpdateBanner.tsx';
 export { ForceUpdateModal } from './update/ForceUpdateModal.tsx';
-export { useAppUpdate, type AppUpdateState, type UpdateStatus } from './update/useAppUpdate.ts';
+export { useAppUpdate, type AppUpdateState, type UpdateStatus, type UseAppUpdateOptions } from './update/useAppUpdate.ts';
 export {
   decideStoreUpdate,
   isValidManifest,

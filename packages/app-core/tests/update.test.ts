@@ -96,3 +96,14 @@ test('테스트 앱 판별: 설치된 앱 ID 기준', async () => {
   );
   assert.equal(describeBuild({ preview: true, version: '1.0.0', channel: 'preview', updateId: null, updateCreatedAt: null }), 'v1.0.0 · 기본 버전');
 });
+
+test('업데이트 진행률 표시: 0~1 → 0~100, 이상값은 준비 중', async () => {
+  const { toPercent } = await import('../src/update/buildInfo.ts');
+  assert.equal(toPercent(0), 0);
+  assert.equal(toPercent(0.424), 42);
+  assert.equal(toPercent(1), 100);
+  assert.equal(toPercent(1.7), 100);
+  assert.equal(toPercent(-0.2), 0);
+  assert.equal(toPercent(undefined), null);
+  assert.equal(toPercent(Number.NaN), null);
+});
