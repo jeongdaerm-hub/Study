@@ -24,6 +24,13 @@ export function canSwitchChannel(): boolean {
   return Platform.OS !== 'web' && !__DEV__ && Updates.isEnabled;
 }
 
+/** 전환할 수 없는 이유 (화면 안내용). 가능하면 null */
+export function switchBlockedReason(): string | null {
+  if (Platform.OS === 'web' || __DEV__) return '웹 미리보기·개발 모드에서는 버전 전환이 안 돼요. 폰에 설치한 앱에서 눌러 주세요.';
+  if (!Updates.isEnabled) return '업데이트 서버(Expo)가 아직 연결되지 않은 앱이에요. RELEASE.md 의 "처음 한 번 설정"을 마친 뒤 새로 만든 앱에서 쓸 수 있어요.';
+  return null;
+}
+
 /** 지금 받고 있는 채널 (기본 채널을 바꿨다면 바꾼 채널) */
 export async function currentChannel(): Promise<Channel> {
   try {
@@ -60,7 +67,8 @@ const NAME: Record<Channel, string> = { production: '공식 버전', preview: '�
  * 받을 업데이트가 없으면 원래 채널로 되돌림
  */
 export async function switchChannel(target: Channel): Promise<SwitchResult> {
-  if (!canSwitchChannel()) return { ok: false, message: '웹 미리보기·개발 모드에서는 쓸 수 없어요. 폰에 설치한 앱에서 해주세요.' };
+  const blocked = switchBlockedReason();
+  if (blocked) return { ok: false, message: blocked };
   const before = await currentChannel();
   try {
     applyOverride(target);

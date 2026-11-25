@@ -4,7 +4,7 @@ import { useTheme } from '../ui/theme.tsx';
 import { useDialog } from '../ui/Dialog.tsx';
 import { getBuildInfo } from '../update/TestBuildRibbon.tsx';
 import { describeBuild } from '../update/buildInfo.ts';
-import { canSwitchChannel, channelName, currentChannel, switchChannel, type Channel } from '../update/channelSwitch.ts';
+import { channelName, switchBlockedReason, currentChannel, switchChannel, type Channel } from '../update/channelSwitch.ts';
 import { getInstallId } from '../storage/installId.ts';
 import { MIN_CODE_LENGTH } from './adminCode.ts';
 import { useAdmin } from './useAdmin.ts';
@@ -61,6 +61,7 @@ export function AppInfoAndAdmin() {
   };
 
   const onTest = channel === 'preview';
+  const blocked = switchBlockedReason();
 
   return (
     <View>
@@ -100,9 +101,7 @@ export function AppInfoAndAdmin() {
               </Text>
             </View>
 
-            {!canSwitchChannel() && (
-              <Text style={[s.hint, { color: t.warn }]}>웹 미리보기·개발 모드에서는 버전 전환이 안 돼요. 폰에 설치한 앱에서 눌러 주세요.</Text>
-            )}
+            {!!blocked && <Text style={[s.hint, { color: t.warn }]}>{blocked}</Text>}
             {busy ? (
               <View style={s.busy}>
                 <ActivityIndicator color="#5B3CC4" />

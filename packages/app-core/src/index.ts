@@ -31,6 +31,7 @@ export {
   currentChannel,
   buildChannel,
   canSwitchChannel,
+  switchBlockedReason,
   channelName,
   type Channel,
   type SwitchResult,
