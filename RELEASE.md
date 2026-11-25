@@ -15,13 +15,17 @@
 
 ## 2. 두 개의 앱
 
+> **내 폰에는 '실제 앱'(다로펫)을 설치**해서 평소처럼 쓰고, 확인할 때만 설정 → 나(관리자) → [배포 전 버전 확인하기].
+> Android Test APK 워크플로가 기본으로 이 앱을 만들어 Releases 의 `pet-android` 에 올려요.
+> 테스트 앱(따로 설치)은 수동 실행에서 variant=preview 를 고를 때만 만들어요.
+
 | 구분 | 테스트 앱 | 실제 앱 |
 |---|---|---|
 | 이름 | 다로펫 테스트 | 다로펫 |
 | 앱 ID | `com.daro.pet.preview` | `com.daro.pet` |
 | 받는 업데이트 | preview 채널 (①) | production 채널 (④) |
 | 표시 | 맨 위 보라색 **🧪 배포 전 버전 · v1.0.0 · 업데이트 #abc123** | 없음 (관리자가 배포 전 버전으로 바꾸면 보라 띠) |
-| 설치 | [테스트 앱 다운로드](https://github.com/jeongdaerm-hub/Study/releases/tag/pet-android-test) | 스토어 |
+| 설치 | Actions → Android Test APK → variant=preview | [내 폰용](https://github.com/jeongdaerm-hub/Study/releases/tag/pet-android) · 이후 스토어 |
 | 데이터 | 따로 (마음껏 테스트) | 사용자 데이터 |
 
 ## 3. 처음 한 번 설정
@@ -34,7 +38,7 @@
 | 4 | Settings → Variables → Actions | `EAS_PROJECT_ID_PET` (`cd apps/pet && npx eas init`) |
 | 5 | 테스트 앱 | 위 설정 후 테스트 APK 가 다시 빌드되면 새로 설치 (업데이트 주소가 들어감) |
 
-| 6 | 내 PC 터미널: `npm run admin:hash` | 관리자 코드(12자 이상) 입력 → 나온 64자리 값을 Settings → Secrets → Actions 에 `DARO_ADMIN_CODE_HASH` 로 저장 (실제 앱의 '나(관리자)' 잠금. 코드 원문은 저장 안 함) |
+| 6 | 관리자 코드 만들기 페이지 (폰에서도 됨) 또는 내 PC `npm run admin:hash` | 관리자 코드(12자 이상) 입력 → 나온 64자리 값을 Settings → Secrets → Actions 에 `DARO_ADMIN_CODE_HASH` 로 저장 (실제 앱의 '나(관리자)' 잠금. 코드 원문은 저장 안 함) |
 
 > 2번을 하지 않으면 승인 없이 바로 배포돼요. 꼭 설정하세요.
 
