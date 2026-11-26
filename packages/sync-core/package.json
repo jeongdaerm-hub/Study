@@ -1,0 +1,13 @@
+{
+  "name": "@daro/sync-core",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "가족 공유 동기화: Supabase 로그인(이메일 코드)·가족·기록 동기화 (의존성 없음, 앱 공용)",
+  "main": "src/index.ts",
+  "types": "src/index.ts",
+  "scripts": {
+    "test": "node --experimental-strip-types --test tests/*.test.ts",
+    "typecheck": "tsc --noEmit"
+  }
+}

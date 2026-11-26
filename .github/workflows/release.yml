@@ -37,6 +37,9 @@ env:
   EAS_PROJECT_ID_PET: ${{ vars.EAS_PROJECT_ID_PET }}
   # 나(관리자) 영역 잠금 해시 (없으면 실제 앱의 관리자 기능 꺼짐). npm run admin:hash 로 생성
   DARO_ADMIN_CODE_HASH: ${{ secrets.DARO_ADMIN_CODE_HASH }}
+  # 가족 공유 서버 (공개 주소·공개 키. 관리자 키는 절대 넣지 않음)
+  DARO_SUPABASE_URL: ${{ vars.DARO_SUPABASE_URL }}
+  DARO_SUPABASE_ANON_KEY: ${{ vars.DARO_SUPABASE_ANON_KEY }}
 
 jobs:
   preview:

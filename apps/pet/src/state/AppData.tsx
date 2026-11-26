@@ -12,6 +12,7 @@ import {
 } from '@daro/app-core';
 import type { Collection, PetDb, Schedule, ScheduleType, Vaccination } from '../types.ts';
 import type { ImportItem } from '@daro/health-scan';
+import { diffList, mergeLocal, type OutboxOp, type RemoteChange, type Row } from '@daro/sync-core';
 import { isLab, isLog, isPet, isSchedule, isVaccine, isVisit, isWeight } from '../logic/validate.ts';
 import { PET_CHANNEL, schedulePetReminder } from '../notifications.ts';
 import { buildSample } from '../data/sample.ts';
@@ -28,6 +29,19 @@ const COLLECTIONS: { [K in Collection]: (x: unknown) => x is PetDb[K][number] } 
 };
 const keyOf = (c: Collection) => storageKey('pet', c, 2);
 const CURRENT_KEY = storageKey('pet', 'current', 2);
+
+/** 다른 폰에서 받은 기록에 없는 '기기 전용' 값의 기본값 (사진은 각 폰에만) */
+const REMOTE_DEFAULTS: Partial<Record<Collection, Record<string, unknown>>> = { visits: { photos: [] }, logs: { photos: [] } };
+
+/** 가족 공유 동기화가 쓰는 연결점 */
+export interface SyncSource {
+  /** 이 폰의 기록 전체 (처음 가족에 들어갈 때 업로드) */
+  snapshot: () => OutboxOp[];
+  /** 다른 가족이 바꾼 기록 반영 (다시 보내지 않음) */
+  applyRemote: (changes: RemoteChange[]) => Promise<void>;
+  /** 이 폰에서 기록이 바뀔 때마다 알림 */
+  subscribe: (listener: (ops: OutboxOp[]) => void) => () => void;
+}
 
 const EMPTY: PetDb = { pets: [], visits: [], labs: [], vaccines: [], weights: [], logs: [], schedules: [] };
 type Item<C extends Collection> = PetDb[C][number];
@@ -46,6 +60,8 @@ interface AppData {
   toggleScheduleDone: (id: string) => Promise<void>;
   saveVaccine: (v: Vaccination) => Promise<void>;
   loadSample: () => Promise<void>;
+  /** 가족 공유 동기화 연결점 */
+  syncSource: SyncSource;
   /** 사진 인식 결과 저장 → 기록 + 일정 동기화 */
   importScan: (petId: string, items: ImportItem[], opts: ImportOptions) => Promise<ImportSummary>;
 }
@@ -85,13 +101,20 @@ export function AppDataProvider({ children }: { children: React.ReactNode }) {
   const [saveError, setSaveError] = useState(false);
   const ref = useRef(db);
   ref.current = db;
+  const listeners = useRef(new Set<(ops: OutboxOp[]) => void>());
 
-  const persist = useCallback(async <C extends Collection>(c: C, list: PetDb[C]) => {
+  /** 저장 (remote=true 면 다른 폰에서 받은 것 → 다시 보내지 않음) */
+  const persist = useCallback(async <C extends Collection>(c: C, list: PetDb[C], remote = false) => {
+    const prev = ref.current[c];
     const next = { ...ref.current, [c]: list };
     ref.current = next;
     setDb(next);
     const ok = await saveList<unknown>(keyOf(c), list as unknown[]);
     setSaveError(!ok);
+    if (!remote && listeners.current.size) {
+      const ops = diffList(c, prev as unknown as Row[], list as unknown as Row[]);
+      if (ops.length) for (const fn of listeners.current) fn(ops);
+    }
   }, []);
 
   // 최초 로드: 형식 검사 통과한 데이터만 사용 + 지난 반복 일정 다음 회차로
@@ -309,6 +332,61 @@ export function AppDataProvider({ children }: { children: React.ReactNode }) {
     [saveVaccine, upsert, saveSchedule],
   );
 
+  /** 다른 가족이 바꾼 기록 반영: 형식 검사 → 내 사진·알림 유지 → 일정 알림은 이 폰에서 다시 예약 */
+  const applyRemote = useCallback(
+    async (changes: RemoteChange[]) => {
+      const byCol = new Map<Collection, RemoteChange[]>();
+      for (const ch of changes) {
+        if (!(ch.collection in COLLECTIONS)) continue;
+        const c = ch.collection as Collection;
+        byCol.set(c, [...(byCol.get(c) ?? []), ch]);
+      }
+      // 반려동물 먼저 (일정 알림 제목에 이름이 필요)
+      const order = (Object.keys(COLLECTIONS) as Collection[]).filter((c) => byCol.has(c));
+      for (const c of order) {
+        let list = [...(ref.current[c] as unknown as Row[])];
+        for (const ch of byCol.get(c)!) {
+          const local = list.find((x) => x.id === ch.id);
+          if (ch.data === null) {
+            if (!local) continue;
+            await deletePhotos(photosOf(local));
+            if (c === 'schedules') await cancelReminder((local as unknown as Schedule).notificationId);
+            list = list.filter((x) => x.id !== ch.id);
+            continue;
+          }
+          const merged = mergeLocal(ch.data, local, REMOTE_DEFAULTS[c] ?? {}) as Row;
+          if (merged.id !== ch.id || !COLLECTIONS[c](merged)) continue; // 형식이 맞지 않으면 무시
+          if (c === 'schedules') {
+            const s = merged as unknown as Schedule;
+            await cancelReminder(s.notificationId);
+            const notificationId = s.done ? undefined : await schedulePetReminder(s, ref.current.pets).catch(() => undefined);
+            (merged as Record<string, unknown>).notificationId = notificationId;
+          }
+          list = [merged, ...list.filter((x) => x.id !== ch.id)];
+        }
+        await persist(c, list as unknown as PetDb[typeof c], true);
+      }
+      if (!ref.current.pets.some((p) => p.id === currentPetId)) {
+        const first = ref.current.pets[0]?.id;
+        if (first) setCurrentPetId(first);
+      }
+    },
+    [persist, currentPetId, setCurrentPetId],
+  );
+
+  const syncSource = useMemo<SyncSource>(
+    () => ({
+      snapshot: () =>
+        (Object.keys(COLLECTIONS) as Collection[]).flatMap((c) => diffList(c, [], ref.current[c] as unknown as Row[])),
+      applyRemote,
+      subscribe: (fn) => {
+        listeners.current.add(fn);
+        return () => listeners.current.delete(fn);
+      },
+    }),
+    [applyRemote],
+  );
+
   const value = useMemo<AppData>(
     () => ({
       ready,
@@ -324,8 +402,9 @@ export function AppDataProvider({ children }: { children: React.ReactNode }) {
       saveVaccine,
       loadSample,
       importScan,
+      syncSource,
     }),
-    [ready, db, currentPetId, setCurrentPetId, saveError, upsert, remove, removePet, saveSchedule, toggleScheduleDone, saveVaccine, loadSample, importScan],
+    [ready, db, currentPetId, setCurrentPetId, saveError, upsert, remove, removePet, saveSchedule, toggleScheduleDone, saveVaccine, loadSample, importScan, syncSource],
   );
 
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;

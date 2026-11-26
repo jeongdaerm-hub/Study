@@ -5,6 +5,8 @@ const { createAppConfig } = require('../index.js');
 // CI 의 APK 빌드는 APP_VARIANT=preview 로 실행되므로 테스트는 환경변수 영향 없이 시작
 delete process.env.APP_VARIANT;
 delete process.env.DARO_ADMIN_CODE_HASH;
+delete process.env.DARO_SUPABASE_URL;
+delete process.env.DARO_SUPABASE_ANON_KEY;
 
 const base = { name: '테스트', slug: 'demo', version: '1.2.0', bundleId: 'com.daro.demo' };
 
@@ -80,4 +82,15 @@ test('관리자 코드 해시: 올바른 64자리 해시만 들어감', () => {
   assert.equal(createAppConfig({ ...base, adminCodeHash: ' ' + h.toUpperCase() }).extra.adminCodeHash, h);
   assert.equal(createAppConfig({ ...base, adminCodeHash: 'my-plain-password' }).extra.adminCodeHash, undefined);
   assert.equal(createAppConfig(base).extra.adminCodeHash, undefined);
+});
+
+test('가족 공유 서버: 공개 키만, 관리자 키면 빌드 중단', () => {
+  const jwt = (role) => ['e30', Buffer.from(JSON.stringify({ role })).toString('base64url'), 'sig'].join('.');
+  const url = 'https://abcdefghijklmnopqrst.supabase.co/';
+  const c = createAppConfig({ ...base, supabaseUrl: url, supabaseAnonKey: jwt('anon') });
+  assert.equal(c.extra.supabaseUrl, 'https://abcdefghijklmnopqrst.supabase.co');
+  assert.equal(c.extra.supabaseAnonKey, jwt('anon'));
+  assert.throws(() => createAppConfig({ ...base, supabaseUrl: url, supabaseAnonKey: jwt('service_role') }), /service_role/);
+  assert.throws(() => createAppConfig({ ...base, supabaseUrl: url, supabaseAnonKey: 'sb_secret_abc123' }), /secret/);
+  assert.equal(createAppConfig(base).extra.supabaseUrl, undefined);
 });

@@ -24,3 +24,22 @@ jobs:
             (cd "$app" && npx expo export --platform android --output-dir /tmp/export-$(basename "$app"))
             echo "::endgroup::"
           done
+
+  # 가족 공유 DB 권한(RLS) 테스트: 남의 가족 기록을 못 보는지, 초대 코드·버전 검사가 맞는지
+  family-db:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_PASSWORD: postgres
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd "pg_isready -U postgres" --health-interval 5s --health-timeout 5s --health-retries 10
+    env:
+      PGHOST: localhost
+      PGUSER: postgres
+      PGPASSWORD: postgres
+    steps:
+      - uses: actions/checkout@v7
+      - run: bash supabase/tests/run.sh

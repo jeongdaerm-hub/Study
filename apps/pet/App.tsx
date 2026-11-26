@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { ActivityIndicator, Platform, Pressable, StatusBar, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaProvider, SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
-import { DialogProvider, TestBuildRibbon, ThemeProvider, UpdateGate } from '@daro/app-core';
+import { DialogProvider, FamilySyncProvider, TestBuildRibbon, ThemeProvider, UpdateGate } from '@daro/app-core';
 import { AppDataProvider, useAppData } from './src/state/AppData.tsx';
 import { HomeScreen } from './src/screens/HomeScreen.tsx';
 import { HealthScreen } from './src/screens/HealthScreen.tsx';
@@ -77,6 +77,16 @@ function Main() {
   );
 }
 
+/** 가족 공유: 같은 가족끼리 기록 주고받기 */
+function FamilySync({ children }: { children: React.ReactNode }) {
+  const { syncSource } = useAppData();
+  return (
+    <FamilySyncProvider appSlug="pet" source={syncSource}>
+      {children}
+    </FamilySyncProvider>
+  );
+}
+
 export default function App() {
   return (
     <SafeAreaProvider>
@@ -86,7 +96,9 @@ export default function App() {
       <ThemeProvider theme={color}>
         <DialogProvider>
           <AppDataProvider>
-            <Main />
+            <FamilySync>
+              <Main />
+            </FamilySync>
           </AppDataProvider>
         </DialogProvider>
       </ThemeProvider>

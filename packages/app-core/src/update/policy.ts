@@ -54,6 +54,8 @@ const STORE_URL_PATTERNS: RegExp[] = [
   /^https:\/\/play\.google\.com\/store\/apps\/details\?id=[A-Za-z0-9._]+$/,
   /^itms-apps:\/\/apps\.apple\.com\/[a-z/]*app\/(?:[\w-]+\/)?id\d+$/,
   /^https:\/\/apps\.apple\.com\/[a-z/]*app\/(?:[\w-]+\/)?id\d+$/,
+  // 스토어 출시 전: GitHub 릴리스 다운로드 페이지 (네이티브가 바뀐 새 APK 받기)
+  /^https:\/\/github\.com\/[A-Za-z0-9-]+\/[A-Za-z0-9._-]+\/releases\/tag\/[A-Za-z0-9._-]+$/,
 ];
 
 export function isSafeStoreUrl(url: unknown): url is string {
