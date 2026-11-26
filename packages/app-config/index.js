@@ -20,6 +20,27 @@ const DEFAULT_MANIFEST_BASE_URL =
 /** 테스트 앱 식별자 접미사 (설치된 앱 ID 로 판별 → OTA 로 바뀌지 않음) */
 const PREVIEW_SUFFIX = '.preview';
 
+/**
+ * 가족 공유 서버(Supabase): 공개 키(anon/publishable)만 앱에 넣음
+ * 관리자 키(service_role / sb_secret_)가 들어오면 빌드를 멈춤 (유출 방지)
+ */
+function supabaseEntry(url, key) {
+  const u = typeof url === 'string' ? url.trim().replace(/\/$/, '') : '';
+  const k = typeof key === 'string' ? key.trim() : '';
+  if (!u || !k) return {};
+  if (k.startsWith('sb_secret_')) throw new Error('DARO_SUPABASE_ANON_KEY 에 관리자(secret) 키가 들어 있어요. 공개(anon/publishable) 키를 넣어 주세요.');
+  const payload = k.split('.')[1];
+  if (payload) {
+    try {
+      const role = JSON.parse(Buffer.from(payload, 'base64url').toString('utf8')).role;
+      if (role === 'service_role') throw new Error('DARO_SUPABASE_ANON_KEY 에 service_role 키가 들어 있어요. anon 키를 넣어 주세요.');
+    } catch (e) {
+      if (e instanceof Error && e.message.startsWith('DARO_SUPABASE')) throw e;
+    }
+  }
+  return { supabaseUrl: u, supabaseAnonKey: k };
+}
+
 /** 관리자 코드 해시: 64자리 16진수만 허용 (잘못된 값이면 관리자 기능 꺼짐) */
 function adminHashEntry(v) {
   const h = typeof v === 'string' ? v.trim().toLowerCase() : '';
@@ -104,6 +125,8 @@ function createAppConfig(o) {
       ...(o.apiUrl ? { apiUrl: o.apiUrl } : {}),
       // 나(관리자) 영역 잠금: 코드 '원문'이 아닌 해시만. GitHub Secret DARO_ADMIN_CODE_HASH
       ...adminHashEntry(o.adminCodeHash ?? process.env.DARO_ADMIN_CODE_HASH),
+      // 가족 공유 서버 (GitHub Variables DARO_SUPABASE_URL / DARO_SUPABASE_ANON_KEY)
+      ...supabaseEntry(o.supabaseUrl ?? process.env.DARO_SUPABASE_URL, o.supabaseAnonKey ?? process.env.DARO_SUPABASE_ANON_KEY),
       ...(o.easProjectId ? { eas: { projectId: o.easProjectId } } : {}),
     },
   };

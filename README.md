@@ -9,6 +9,8 @@
 |---|---|---|
 | `packages/app-core` | 공통 기능 (인앱 업데이트, 알림, 저장소, 사진, UI) | 프랜차이즈 공용 주방 설비 |
 | `packages/app-config` | 공통 빌드 설정 (OTA, 버전 정책, 권한, Metro) | 매장 인테리어 표준 도면 |
+| `packages/sync-core` | 가족 공유: 이메일 코드 로그인·가족 초대·기록 동기화 (React 없음) | 가족 단톡방 규칙 |
+| `supabase/` | 가족 공유 DB 표·권한(RLS)·RPC + 권한 테스트 | 공용 금고와 출입 명단 |
 | `packages/health-scan` | 건강수첩 사진 인식 규칙 (결과 형식·AI 지시문·검증·가져오기 계획) | 서류 접수 기준표 |
 | `services/scan-api` | 사진 인식 서버 (Claude API, 키는 서버에만) | 서류 판독 창구 |
 | `templates/expo-app` | 새 앱 뼈대 | 신규 매장 오픈 키트 |
@@ -27,6 +29,8 @@
 | storage | 기기 저장소, 사진 선택(앨범/카메라)·보관·삭제 | `loadList/saveList`, `pickPhotos` |
 | logic | 날짜, 반복 일정 계산 (순수 함수) | `@daro/app-core/logic.ts` (테스트·스크립트용) |
 | ui | 테마(브랜드 색), Chip, 버튼, FAB, 날짜·시간 선택, 확인 창 | `<ThemeProvider>`, `<DialogProvider>` |
+| admin | 나(관리자) 영역: 배포 전 버전 확인하기 | `<AppInfoAndAdmin />` |
+| family | 가족 공유: 로그인·가족 만들기/참여·자동 동기화 ([docs/family-sharing.md](docs/family-sharing.md)) | `<FamilySyncProvider>` + `<FamilyPanel />` |
 
 - 표준 SDK: **Expo SDK 58** (React 19 · React Native 0.88) (버전 목록 = `packages/app-core/package.json` 의 `peerDependencies`)
 - 모든 앱이 같은 SDK → 공통 모듈 호환 보장. SDK 업그레이드는 저장소 전체에서 한 번에 진행

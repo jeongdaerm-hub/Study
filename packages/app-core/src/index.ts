@@ -3,6 +3,7 @@
  *
  *  update/        인앱 업데이트 (OTA + 스토어 버전 체크 + 업데이트 버튼 + 채널 전환)
  *  admin/         나(관리자) 영역: 배포 전 버전 확인하기
+ *  family/        가족 공유: 로그인·가족 초대·기록 동기화 (@daro/sync-core 사용)
  *  notifications/ 로컬 알림 예약/취소 (반복 일정 지원)
  *  storage/       기기 저장소, 사진 선택·보관
  *  logic/         날짜, 반복 일정 계산 (순수 함수, 단위 테스트 대상)
@@ -37,6 +38,10 @@ export {
   type Channel,
   type SwitchResult,
 } from './update/channelSwitch.ts';
+
+// family (가족 공유: 같은 기록 함께 보기)
+export { FamilySyncProvider, useFamily, useFamilyOptional, type FamilySource } from './family/FamilySync.tsx';
+export { FamilyPanel } from './family/FamilyPanel.tsx';
 
 // admin (나만 보는 관리자 영역)
 export { AppInfoAndAdmin } from './admin/AdminPanel.tsx';
